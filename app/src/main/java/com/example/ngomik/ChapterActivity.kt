@@ -9,7 +9,7 @@ import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
+import com.example.ngomik.util.ImageUtils
 
 class ChapterActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
@@ -27,7 +27,7 @@ class ChapterActivity : AppCompatActivity() {
         adapter = PageAdapter(emptyList()) // awalnya kosong
         recycler.adapter = adapter
 
-        // TODO: panggil fungsi parsing di sini dan set hasilnya ke adapter
+        // TODO: panggil fungsi parsing chapter di sini lalu isi adapter dengan setPages()
     }
 
     fun setPages(pages: List<String>) {
@@ -50,9 +50,16 @@ class ChapterActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: PageViewHolder, position: Int) {
             val url = pages[position]
-            Glide.with(holder.itemView.context)
-                .load(url)
-                .into(holder.image)
+            holder.image.setImageDrawable(null)
+
+            Thread {
+                try {
+                    val bmp = ImageUtils.downloadAndDownsample(url, 1080)
+                    holder.image.post { holder.image.setImageBitmap(bmp) }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }.start()
         }
 
         override fun getItemCount(): Int = pages.size
