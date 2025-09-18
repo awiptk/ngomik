@@ -1,4 +1,4 @@
-name: Unpack ZIP to Root
+name: Unpack ZIP & Commit to Repo
 
 on:
   workflow_dispatch:
@@ -7,12 +7,27 @@ on:
       - 'ngomik.zip'
 
 jobs:
-  unzip:
+  unpack-and-commit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Unpack ngomik.zip to root
+      - name: Unzip ngomik.zip to root
+        run: unzip -o ngomik.zip -d .
+
+      - name: Set git config
         run: |
-          unzip -o ngomik.zip -d .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit extracted files
+        run: |
+          git add .
+          git commit -m "Unpack ngomik.zip to root"
+        continue-on-error: true
+
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
