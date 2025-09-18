@@ -35,12 +35,34 @@ class MangaDetailActivity : AppCompatActivity() {
             try {
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
 
-                val cover = doc.selectFirst(".thumb img, .cover img, .post-thumbnail img")?.absUrl("data-src")?.ifEmpty { doc.selectFirst(".thumb img, .cover img, .post-thumbnail img")?.absUrl("src") }?.trim().orEmpty()
-                val title = doc.selectFirst("h1.entry-title, .post-title, .judul")?.text()?.trim().orEmpty()
-                val author = doc.selectFirst(".author, .post-author, .meta a[rel=author]")?.text()?.trim().orEmpty()
-                val genre = doc.selectFirst(".genres, .genre, .post-genre")?.text()?.trim().orEmpty()
-                val type = doc.selectFirst(".type, .manga-type, .post-type")?.text()?.trim().orEmpty()
-                val description = doc.selectFirst(".description, .sinopsis, .entry-content, .post-content")?.text()?.trim().orEmpty()
+                // Mengambil elemen sesuai HTML yang diberikan
+                val cover = doc.selectFirst(".thumb img")?.absUrl("src") ?: ""
+                val title = doc.selectFirst("h1.entry-title")?.text()?.trim() ?: ""
+                val altTitle = doc.selectFirst(".alternative")?.text()?.trim() ?: ""
+                
+                // Mengambil info dari .tsinfo
+                val status = doc.select(".tsinfo .imptdt").find { it.text().contains("Status") }?.selectFirst("i")?.text()?.trim() ?: ""
+                val type = doc.select(".tsinfo .imptdt").find { it.text().contains("Type") }?.selectFirst("a")?.text()?.trim() ?: ""
+                val released = doc.select(".tsinfo .imptdt").find { it.text().contains("Released") }?.selectFirst("i")?.text()?.trim() ?: ""
+                val author = doc.select(".tsinfo .imptdt").find { it.text().contains("Author") }?.selectFirst("i")?.text()?.trim() ?: ""
+                val artist = doc.select(".tsinfo .imptdt").find { it.text().contains("Artist") }?.selectFirst("i")?.text()?.trim() ?: ""
+                
+                // Genre dari .mgen
+                val genres = doc.select(".mgen a").map { it.text().trim() }.joinToString(", ")
+                
+                // Rating
+                val rating = doc.selectFirst(".rating .num")?.text()?.trim() ?: ""
+                
+                // Deskripsi
+                val description = doc.selectFirst(".entry-content-single")?.text()?.trim() ?: ""
+                
+                // Chapter list dari .eplister ul li
+                val chapters = doc.select(".eplister ul li").map { li ->
+                    val link = li.selectFirst("a")?.absUrl("href") ?: ""
+                    val chapterTitle = li.selectFirst(".chapternum")?.text()?.trim() ?: ""
+                    val chapterDate = li.selectFirst(".chapterdate")?.text()?.trim() ?: ""
+                    Triple(link, chapterTitle, chapterDate)
+                }.filter { it.first.isNotEmpty() }
 
                 withContext(Dispatchers.Main) {
                     progress.visibility = View.GONE
@@ -52,11 +74,12 @@ class MangaDetailActivity : AppCompatActivity() {
                     val descTv = findViewById<TextView>(R.id.description)
 
                     titleTv.text = title
-                    authorTv.text = "Author: ${author.ifEmpty { "-" }}"
-                    genreTv.text = "Genre: ${genre.ifEmpty { "-" }}"
-                    typeTv.text = "Type: ${type.ifEmpty { "-" }}"
+                    authorTv.text = "Author: ${author.ifEmpty { "-" }} ${if (artist.isNotEmpty() && artist != author) "| Artist: $artist" else ""}"
+                    genreTv.text = "Genre: ${genres.ifEmpty { "-" }}"
+                    typeTv.text = "Type: ${type.ifEmpty { "-" }} | Status: ${status.ifEmpty { "-" }} | Rating: ${rating.ifEmpty { "-" }}"
                     descTv.text = description
 
+                    // Load cover image
                     Thread {
                         try {
                             val bmp: Bitmap? = if (cover.isNotEmpty()) ImageUtils.downloadAndDownsample(cover, 640) else null
@@ -64,9 +87,10 @@ class MangaDetailActivity : AppCompatActivity() {
                         } catch (e: Exception) { e.printStackTrace() }
                     }.start()
 
-                    val chapters = doc.select(".chapter-list a, .chapters a, .list-chapter a").map { it.absUrl("href") to it.text().trim() }
+                    // Setup chapter list
                     val listView = ListView(this@MangaDetailActivity)
-                    listView.adapter = android.widget.ArrayAdapter(this@MangaDetailActivity, android.R.layout.simple_list_item_1, chapters.map { it.second })
+                    val chapterTitles = chapters.map { "${it.second} - ${it.third}" }
+                    listView.adapter = android.widget.ArrayAdapter(this@MangaDetailActivity, android.R.layout.simple_list_item_1, chapterTitles)
                     listView.setOnItemClickListener { _, _, pos, _ ->
                         val href = chapters[pos].first
                         val intent = Intent(this@MangaDetailActivity, ChapterActivity::class.java)
