@@ -51,7 +51,12 @@ jobs:
           target: default
           force-avd-creation: false
           emulator-options: -no-window -no-audio
-          use-gradle-app-test: false
+          disable-linux-hw-accel: true
+          # A small script run while the emulator is up.
+          # We don't need to run tests here; just keep it minimal so the step succeeds.
+          script: |
+            echo "Emulator created (no tests to run)."
+            sleep 1
 
       - name: Build with Gradle (assembleDebug)
         uses: gradle/gradle-build-action@v3
