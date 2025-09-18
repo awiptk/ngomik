@@ -1,9 +1,9 @@
 name: Android CI - build APK
 
 on:
-  workflow_dispatch:    # bisa dijalankan manual dari tab Actions
+  workflow_dispatch:
   push:
-    branches: [ main ]  # ubah kalau kamu pakai branch lain
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -41,7 +41,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Set up Android SDK & emulator tools
+      - name: Set up Android SDK & AVD tools
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 33
