@@ -13,6 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Unpack archive.zip to root
+      - name: Unpack ngomik.zip to root
         run: |
-          unzip -o archive.zip -d .
+          unzip -o ngomik.zip -d .
