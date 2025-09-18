@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -34,14 +35,32 @@ class ChapterActivity : AppCompatActivity() {
     private fun parseChapter(url: String) {
         progress.visibility = View.VISIBLE
         CoroutineScope(Dispatchers.IO).launch {
-            val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
-            val imgs = doc.select("div#chapter_body img, .reader-area img, .chapter-content img, .page img")
-            val prefs = getSharedPreferences("ngomik_prefs", Context.MODE_PRIVATE)
-            val service = prefs.getString("resize_service_url", "") ?: ""
-            val pages = imgs.map { img -> val src = img.absUrl("data-src").ifEmpty { img.absUrl("src") }.trim(); if (service.isNotEmpty()) service + src else src }.filter { it.isNotEmpty() }
-            withContext(Dispatchers.Main) {
-                progress.visibility = View.GONE
-                recycler.adapter = PagesAdapter(this@ChapterActivity, pages)
+            try {
+                val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
+                val imgs = doc.select("div#chapter_body img, .reader-area img, .chapter-content img, .page img")
+                val prefs = getSharedPreferences("ngomik_prefs", Context.MODE_PRIVATE)
+                val service = prefs.getString("resize_service_url", "") ?: ""
+                val pages = imgs.map { img ->
+                    val src = img.absUrl("data-src").ifEmpty { img.absUrl("src") }.trim()
+                    if (service.isNotEmpty()) service + src else src
+                }.filter { it.isNotEmpty() }
+                withContext(Dispatchers.Main) {
+                    progress.visibility = View.GONE
+                    if (pages.isEmpty()) {
+                        Toast.makeText(this@ChapterActivity, "Gambar chapter tidak ditemukan atau selector salah.", Toast.LENGTH_LONG).show()
+                    }
+                    recycler.adapter = PagesAdapter(this@ChapterActivity, pages)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    progress.visibility = View.GONE
+                    Toast.makeText(
+                        this@ChapterActivity,
+                        "Gagal memuat chapter: ${e.message ?: "Unknown error"}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
