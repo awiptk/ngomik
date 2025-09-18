@@ -1,4 +1,4 @@
-name: ci
+name: Android CI - build APK
 
 on:
   workflow_dispatch:
@@ -8,13 +8,15 @@ on:
 permissions:
   contents: read
 
-env:
-  ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
+    # Set ANDROID_SDK_ROOT using runner-provided env variable $RUNNER_TEMP
+    env:
+      ANDROID_SDK_ROOT: $RUNNER_TEMP/android-sdk
+      ANDROID_HOME: $RUNNER_TEMP/android-sdk
 
     steps:
       - name: Checkout repository
@@ -56,8 +58,9 @@ jobs:
         with:
           arguments: assembleDebug
         env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          # pass the same runtime path to the Gradle step explicitly
+          ANDROID_SDK_ROOT: $RUNNER_TEMP/android-sdk
+          ANDROID_HOME: $RUNNER_TEMP/android-sdk
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
