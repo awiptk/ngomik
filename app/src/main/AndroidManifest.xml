@@ -3,8 +3,13 @@
     <application android:label="NgomikReader" android:allowBackup="true" android:icon="@mipmap/ic_launcher">
         <activity android:name="com.example.ngomik.ChapterActivity"/>
         <activity android:name="com.example.ngomik.MangaDetailActivity"/>
-        <activity android:name="com.example.ngomik.MainActivity">
-            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        <activity
+            android:name="com.example.ngomik.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>
