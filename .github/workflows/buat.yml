@@ -51,7 +51,7 @@ jobs:
           set -euo pipefail
 
           # Set which Gradle to use to create wrapper (compatible with AGP 7.4.2)
-          GRADLE_VER=8.14.1
+          GRADLE_VER=8.1.0
 
           echo "Using temporary Gradle ${GRADLE_VER} (downloaded) to create wrapper if missing..."
 
