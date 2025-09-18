@@ -40,18 +40,24 @@ class MainActivity : AppCompatActivity() {
         progress.visibility = View.VISIBLE
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = "https://id.ngomik.cloud/"
-                val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
+                val baseUrl = "https://id.ngomik.cloud"
+                val path = "/manga/?order=update"
+                val fullUrl = baseUrl + path
+                
+                val doc = Jsoup.connect(fullUrl).userAgent("Mozilla/5.0").get()
 
-                val items = doc.select(".list-update_item, .list-update_items .list-update_item")
+                // Selector sesuai dengan struktur HTML yang Anda berikan
+                val items = doc.select(".listupd .bs")
+                
                 mangas = items.map { el ->
-                    val a = el.selectFirst("a") ?: el
-                    val title = a.text().trim().ifEmpty { a.attr("href") }
-                    val href = a.absUrl("href")
-                    val cover = el.selectFirst("img")?.absUrl("data-src")?.ifEmpty { el.selectFirst("img")?.absUrl("src") }?.trim().orEmpty()
-                    val type = el.selectFirst(".type")?.text()?.trim().orEmpty()
+                    val a = el.selectFirst("a")
+                    val title = el.selectFirst(".tt")?.text()?.trim() ?: ""
+                    val href = a?.absUrl("href") ?: ""
+                    val cover = el.selectFirst("img")?.absUrl("src") ?: ""
+                    val type = el.selectFirst(".type")?.text()?.trim() ?: ""
+                    
                     MangaItem(title, href, cover, type)
-                }
+                }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
 
                 withContext(Dispatchers.Main) {
                     progress.visibility = View.GONE
