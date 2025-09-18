@@ -41,8 +41,9 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val baseUrl = "https://id.ngomik.cloud"
-                val path = "/manga/?order=update"
-                val fullUrl = baseUrl + path
+                val path = "/manga/"
+                val param = "?order=update"
+                val fullUrl = baseUrl + path + param
                 
                 val doc = Jsoup.connect(fullUrl).userAgent("Mozilla/5.0").get()
 
