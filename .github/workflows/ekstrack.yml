@@ -6,6 +6,10 @@ on:
     paths:
       - 'ngomik.zip'
 
+env:
+  ZIP_FILE: 'ngomik.zip'
+  EXTRACT_DESTINATION: './extracted'
+
 jobs:
   unpack-and-commit:
     runs-on: ubuntu-latest
@@ -13,8 +17,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Unzip ngomik.zip to root
-        run: unzip -o ngomik.zip -d .
+      - name: Create destination directory
+        run: mkdir -p ${{ env.EXTRACT_DESTINATION }}
+
+      - name: Unzip file to destination
+        run: unzip -o ${{ env.ZIP_FILE }} -d ${{ env.EXTRACT_DESTINATION }}
+
+      - name: List extracted contents
+        run: ls -la ${{ env.EXTRACT_DESTINATION }}
 
       - name: Set git config
         run: |
@@ -24,7 +34,7 @@ jobs:
       - name: Commit extracted files
         run: |
           git add .
-          git commit -m "Unpack ngomik.zip to root"
+          git commit -m "Unpack ${{ env.ZIP_FILE }} to ${{ env.EXTRACT_DESTINATION }}"
         continue-on-error: true
 
       - name: Push changes
