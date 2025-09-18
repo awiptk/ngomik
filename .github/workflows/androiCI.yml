@@ -13,17 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
-    # Set ANDROID_SDK_ROOT using runner-provided env variable $RUNNER_TEMP
     env:
-      ANDROID_SDK_ROOT: $RUNNER_TEMP/android-sdk
-      ANDROID_HOME: $RUNNER_TEMP/android-sdk
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+      ANDROID_HOME: ${{ runner.temp }}/android-sdk
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Make gradlew executable (if present)
-        if: runner.os == 'Linux'
+      - name: Make gradlew executable
         run: |
           if [ -f ./gradlew ]; then chmod +x ./gradlew; fi
 
@@ -43,29 +41,39 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Set up Android SDK & AVD tools
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          arch: x86_64
-          target: default
-          force-avd-creation: false
-          emulator-options: -no-window -no-audio
-          disable-linux-hw-accel: true
-          # A small script run while the emulator is up.
-          # We don't need to run tests here; just keep it minimal so the step succeeds.
-          script: |
-            echo "Emulator created (no tests to run)."
-            sleep 1
+      - name: Install Android command line tools and SDK packages
+        run: |
+          set -euo pipefail
+          mkdir -p "$ANDROID_SDK_ROOT"
+          cd /tmp
+
+          CLI_ZIP="commandlinetools-linux-9477386_latest.zip"
+          wget -q "https://dl.google.com/android/repository/${CLI_ZIP}" -O cmdline-tools.zip
+
+          unzip -q cmdline-tools.zip -d cmdline-tools-unpacked
+          rm cmdline-tools.zip || true
+
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+
+          if [ -d cmdline-tools-unpacked/cmdline-tools ]; then
+            mv cmdline-tools-unpacked/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+          else
+            mv cmdline-tools-unpacked/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+          fi
+          rm -rf cmdline-tools-unpacked || true
+
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses || true
+          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "platforms;android-21"
 
       - name: Build with Gradle (assembleDebug)
         uses: gradle/gradle-build-action@v3
         with:
           arguments: assembleDebug
         env:
-          # pass the same runtime path to the Gradle step explicitly
-          ANDROID_SDK_ROOT: $RUNNER_TEMP/android-sdk
-          ANDROID_HOME: $RUNNER_TEMP/android-sdk
+          ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+          ANDROID_HOME: ${{ runner.temp }}/android-sdk
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
