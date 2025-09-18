@@ -72,8 +72,8 @@ jobs:
         with:
           arguments: assembleDebug
         env:
-          ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-          ANDROID_HOME: ${{ runner.temp }}/android-sdk
+  ANDROID_SDK_ROOT: /usr/local/android-sdk
+  ANDROID_HOME: /usr/local/android-sdk
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
