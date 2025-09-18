@@ -1,6 +1,5 @@
-name: Android CI - build APK (mobile-friendly)
+name: Android CI - build APK
 
-# Trigger: sesuaikan branch jika perlu
 on:
   push:
     branches: [ main ]
@@ -11,7 +10,6 @@ permissions:
   contents: read
 
 env:
-  # Temporary SDK root used in runner
   ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
 
 jobs:
@@ -23,7 +21,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Optional: make gradlew executable if repo already contains wrapper (harus tetap aman)
       - name: Make gradlew executable (if present)
         if: runner.os == 'Linux'
         run: |
@@ -45,19 +42,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # ---------- Recommended: use reactivecircus action to setup SDK & emulator ----------
-      - name: Set up Android SDK & emulator (reactivecircus)
+      - name: Set up Android SDK
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33            # SDK for build
+          api-level: 33
           arch: x86_64
           target: default
           force-avd-creation: false
           emulator-options: -no-window -no-audio
           use-gradle-app-test: false
-
-      # Note: reactivecircus action accepts licenses and installs SDK packages. It also optionally creates an AVD.
-      # If you prefer manual SDK install (not recommended on mobile), replace previous step with the robust sdkmanager script.
 
       - name: Build with Gradle (assembleDebug)
         uses: gradle/gradle-build-action@v3
@@ -72,48 +65,3 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-
-  # ---------- Optional job: run instrumented tests on API21 emulator ----------
-  # Uncomment the job below if you want connectedAndroidTest on Android 5.0 emulator.
-  # Note: this will increase runtime and resource usage.
-  #
-  # test-on-api21:
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up JDK 17
-  #       uses: actions/setup-java@v4
-  #       with:
-  #         distribution: temurin
-  #         java-version: '17'
-  #     - name: Create & start API 21 emulator
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y wget unzip libvirt-clients libvirt-daemon-system qemu-kvm
-  #         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-  #         cd /tmp
-  #         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-  #         unzip -q cmdline-tools.zip -d cmdline-tools-unpacked
-  #         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-  #         mv cmdline-tools-unpacked/*/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || mv cmdline-tools-unpacked/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || true
-  #         rm -rf cmdline-tools-unpacked cmdline-tools.zip
-  #         export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-  #         yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT "system-images;android-21;default;x86"
-  #         echo "no" | avdmanager create avd -n test21 -k "system-images;android-21;default;x86" --force
-  #         $ANDROID_SDK_ROOT/emulator/emulator -avd test21 -no-window -no-audio &
-  #         # Wait for boot
-  #         timeout=0
-  #         until adb shell getprop sys.boot_completed | grep -m 1 '1'; do
-  #           sleep 5
-  #           timeout=$((timeout+5))
-  #           if [ $timeout -gt 240 ]; then
-  #             echo "Emulator failed to boot within 240s"
-  #             exit 1
-  #           fi
-  #         done
-  #     - name: Run connected tests
-  #       run: ./gradlew connectedAndroidTest
-  #       env:
-  #         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-  #         ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
