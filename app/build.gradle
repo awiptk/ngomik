@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
+    namespace 'com.example.ngomik' // Tambahkan baris ini
     buildFeatures { compose true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.5" }
-    kotlinOptions { jvmTarget = "17" }
-
     compileSdk 33
-defaultConfig {
+
+    defaultConfig {
         applicationId "com.example.ngomik"
         minSdk 21
         targetSdk 33
