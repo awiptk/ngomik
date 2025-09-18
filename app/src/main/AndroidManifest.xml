@@ -1,0 +1,10 @@
+<manifest package="com.example.ngomik" xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="NgomikReader" android:allowBackup="true" android:icon="@mipmap/ic_launcher">
+        <activity android:name="com.example.ngomik.ChapterActivity"/>
+        <activity android:name="com.example.ngomik.MangaDetailActivity"/>
+        <activity android:name="com.example.ngomik.MainActivity">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity>
+    </application>
+</manifest>
