@@ -1,16 +1,20 @@
-name: Android CI
+name: Android CI - build APK (mobile friendly)
 
 on:
   push:
-    branches: [ main ]   # jalankan di branch main
+    branches: [ main ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -19,8 +23,43 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties','**/build.gradle','**/settings.gradle') }}
+
+      - name: Install Android SDK (platform-tools, build-tools, platforms)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          # Install commandline tools
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
+          unzip -q tools.zip
+          rm tools.zip
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-33" "build-tools;33.0.2" "platforms;android-21"
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+      - name: Accept licenses
+        run: yes | $HOME/android-sdk/cmdline-tools/tools/bin/sdkmanager --licenses || true
+        env:
+          ANDROID_SDK_ROOT: $HOME/android-sdk
+
+      - name: Build with Gradle action (no gradlew required)
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: assembleDebug
+        env:
+          ANDROID_HOME: $HOME/android-sdk
+          ANDROID_SDK_ROOT: $HOME/android-sdk
+          # optional: disable AndroidX auto-migration here if you need to
+          # GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1536m"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
