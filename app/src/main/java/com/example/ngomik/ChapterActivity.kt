@@ -37,19 +37,23 @@ class ChapterActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
-                val imgs = doc.select("div#chapter_body img, .reader-area img, .chapter-content img, .page img")
-                val prefs = getSharedPreferences("ngomik_prefs", Context.MODE_PRIVATE)
-                val service = prefs.getString("resize_service_url", "") ?: ""
-                val pages = imgs.map { img ->
-                    val src = img.absUrl("data-src").ifEmpty { img.absUrl("src") }.trim()
-                    if (service.isNotEmpty()) service + src else src
-                }.filter { it.isNotEmpty() }
+                
+                // Selector sesuai HTML yang diberikan
+                val imgs = doc.select("#readerarea img.ts-main-image")
+                val service = "https://images.weserv.nl/?w=300&q=70&url="
+                
+                val pages = imgs.mapNotNull { img ->
+                    val imageUrl = img.attr("data-src").ifEmpty { img.absUrl("src") }
+                    if (imageUrl.isNotEmpty()) service + imageUrl else null
+                }
+
                 withContext(Dispatchers.Main) {
                     progress.visibility = View.GONE
                     if (pages.isEmpty()) {
-                        Toast.makeText(this@ChapterActivity, "Gambar chapter tidak ditemukan atau selector salah.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@ChapterActivity, "Gambar chapter tidak ditemukan.", Toast.LENGTH_LONG).show()
+                    } else {
+                        recycler.adapter = PagesAdapter(this@ChapterActivity, pages)
                     }
-                    recycler.adapter = PagesAdapter(this@ChapterActivity, pages)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -57,7 +61,7 @@ class ChapterActivity : AppCompatActivity() {
                     progress.visibility = View.GONE
                     Toast.makeText(
                         this@ChapterActivity,
-                        "Gagal memuat chapter: ${e.message ?: "Unknown error"}",
+                        "Gagal memuat chapter: ${e.message}",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -71,19 +75,26 @@ class PagesAdapter(private val ctx: Context, private val pages: List<String>) : 
         val iv = ImageView(parent.context)
         iv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         iv.adjustViewBounds = true
+        iv.scaleType = ImageView.ScaleType.FIT_WIDTH
         return Holder(iv)
     }
-    override fun onBindViewHolder(holder: Holder, position: Int) { val url = pages[position]; holder.bind(url) }
+    override fun onBindViewHolder(holder: Holder, position: Int) { 
+        val url = pages[position]
+        holder.bind(url) 
+    }
     override fun getItemCount(): Int = pages.size
+    
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         private val iv = view as ImageView
         fun bind(url: String) {
             iv.setImageDrawable(null)
             Thread {
                 try {
-                    val bmp = ImageUtils.downloadAndDownsample(url, iv.width.takeIf { it>0 } ?: 1080)
+                    val bmp = ImageUtils.downloadAndDownsample(url, 1080)
                     iv.post { iv.setImageBitmap(bmp) }
-                } catch (e: Exception) { e.printStackTrace() }
+                } catch (e: Exception) { 
+                    e.printStackTrace() 
+                }
             }.start()
         }
     }
