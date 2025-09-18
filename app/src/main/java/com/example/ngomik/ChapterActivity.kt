@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import com.example.ngomik.util.ImageUtils
 
 class ChapterActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
