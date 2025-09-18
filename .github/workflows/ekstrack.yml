@@ -2,13 +2,24 @@ name: Unpack ZIP & Commit to Repo
 
 on:
   workflow_dispatch:
+    inputs:
+      zip_file_name:
+        description: 'Nama file ZIP yang akan di-unpack'
+        required: true
+        default: 'ngomik.zip'
+        type: string
+      extract_destination:
+        description: 'Folder tujuan ekstraksi'
+        required: true
+        default: './extracted'
+        type: string
   push:
     paths:
       - 'ngomik.zip'
 
 env:
-  ZIP_FILE: 'ngomik.zip'
-  EXTRACT_DESTINATION: './extracted'
+  ZIP_FILE: ${{ github.event.inputs.zip_file_name || 'ngomik.zip' }}
+  EXTRACT_DESTINATION: ${{ github.event.inputs.extract_destination || './extracted' }}
 
 jobs:
   unpack-and-commit:
