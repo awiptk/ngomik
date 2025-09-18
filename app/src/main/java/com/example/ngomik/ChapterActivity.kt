@@ -1,5 +1,3 @@
-package com.example.ngomik
-
 import android.content.Context
 import android.os.Bundle
 import android.view.View
@@ -15,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
-import com.example.ngomik.util.ImageUtils
 
 class ChapterActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
@@ -37,11 +34,11 @@ class ChapterActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
-                
+
                 // Selector sesuai HTML yang diberikan
                 val imgs = doc.select("#readerarea img.ts-main-image")
                 val service = "https://images.weserv.nl/?w=300&q=70&url="
-                
+
                 val pages = imgs.mapNotNull { img ->
                     val imageUrl = img.attr("data-src").ifEmpty { img.absUrl("src") }
                     if (imageUrl.isNotEmpty()) service + imageUrl else null
@@ -75,15 +72,16 @@ class PagesAdapter(private val ctx: Context, private val pages: List<String>) : 
         val iv = ImageView(parent.context)
         iv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         iv.adjustViewBounds = true
-        iv.scaleType = ImageView.ScaleType.FIT_WIDTH
+        // Perbaikan: FIT_WIDTH tidak ada di Android. Gunakan FIT_CENTER untuk menyesuaikan lebar & jaga rasio.
+        iv.scaleType = ImageView.ScaleType.FIT_CENTER
         return Holder(iv)
     }
-    override fun onBindViewHolder(holder: Holder, position: Int) { 
+    override fun onBindViewHolder(holder: Holder, position: Int) {
         val url = pages[position]
-        holder.bind(url) 
+        holder.bind(url)
     }
     override fun getItemCount(): Int = pages.size
-    
+
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         private val iv = view as ImageView
         fun bind(url: String) {
@@ -92,8 +90,8 @@ class PagesAdapter(private val ctx: Context, private val pages: List<String>) : 
                 try {
                     val bmp = ImageUtils.downloadAndDownsample(url, 1080)
                     iv.post { iv.setImageBitmap(bmp) }
-                } catch (e: Exception) { 
-                    e.printStackTrace() 
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }.start()
         }
