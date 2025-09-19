@@ -6,13 +6,11 @@
     android:layout_height="match_parent"
     android:background="?android:attr/windowBackground">
 
-    <!-- Swipe to refresh wraps the RecyclerView -->
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefresh"
+    <!-- Container utama menggantikan SwipeRefreshLayout -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="0dp"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_margin="0dp">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
@@ -25,29 +23,21 @@
             android:clipToPadding="false"
             android:scrollbars="vertical"
             android:clipToOutline="false"
-            android:layout_marginBottom="72dp" /> <!-- beri ruang untuk FAB -->
+            android:layout_marginBottom="72dp" /> <!-- ruang untuk FAB -->
 
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        <!-- Empty state (tampil saat data kosong). Default: gone -->
+        <TextView
+            android:id="@+id/emptyView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tidak ada item"
+            android:textSize="16sp"
+            android:textColor="#757575"
+            android:visibility="gone"
+            android:layout_gravity="center"
+            android:layout_margin="16dp" />
 
-    <!-- Empty state (tampil saat data kosong). Default: gone -->
-    <TextView
-        android:id="@+id/emptyView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Tidak ada item"
-        android:textSize="16sp"
-        android:textColor="#757575"
-        android:visibility="gone"
-        android:layout_gravity="center"
-        android:layout_margin="16dp" />
-
-    <!-- Progress overlay (tengah layar) -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clickable="false"
-        android:focusable="false">
-
+        <!-- Progress overlay (tengah layar) -->
         <ProgressBar
             android:id="@+id/progress"
             style="?android:attr/progressBarStyleLarge"
@@ -69,7 +59,6 @@
         app:tint="@android:color/white"
         app:layout_anchorGravity="bottom|end"
         app:backgroundTint="?attr/colorPrimary"
-        app:layout_anchor="@id/recycler"
-        />
+        app:layout_anchor="@id/recycler" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
