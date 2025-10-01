@@ -4,6 +4,16 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
+    <!-- Switch untuk dark mode -->
+    <Switch
+        android:id="@+id/dark_mode_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:text="Mode Malam"
+        android:layout_margin="16dp" />
+
     <!-- Progress Loading -->
     <ProgressBar
         android:id="@+id/progress"
@@ -22,6 +32,6 @@
         android:dividerHeight="1dp"
         android:padding="12dp"
         android:clipToPadding="false"
-        android:layout_below="@id/progress" />
+        android:layout_below="@id/dark_mode_switch" /> <!-- Di bawah switch -->
 
 </RelativeLayout>
