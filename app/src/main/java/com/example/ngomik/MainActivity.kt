@@ -3,10 +3,13 @@ package com.example.ngomik
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.view.Gravity
-import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
+import android.widget.Toast
+import android.widget.ImageView
+import android.widget.TextView
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -14,12 +17,10 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
-import com.google.android.material.navigation.NavigationView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
@@ -27,15 +28,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
-import android.widget.Toast
-import android.widget.ImageView
-import android.widget.TextView
-import android.view.LayoutInflater
-import android.view.ViewGroup
 
 data class MangaItem(val title: String, val href: String, val cover: String, val type: String)
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+class MainActivity : AppCompatActivity() {
+
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBottom: ProgressBar
@@ -53,7 +50,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Set dark mode as default
+        // Dark mode default
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -66,8 +63,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // Setup drawer
         drawerLayout = findViewById(R.id.drawer_layout)
-        val navView: NavigationView = findViewById(R.id.nav_view)
-        navView.setNavigationItemSelectedListener(this)
 
         val toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
@@ -76,15 +71,27 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
+        // Ambil menu TextView manual
+        val navLibrary: TextView = findViewById(R.id.nav_library)
+        val navBrowse: TextView = findViewById(R.id.nav_browse)
+
+        navLibrary.setOnClickListener {
+            loadLibrary()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        navBrowse.setOnClickListener {
+            loadBrowse()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
         recyclerView = findViewById(R.id.recyclerView)
         progressBottom = findViewById(R.id.progress_bottom)
 
-        // Grid layout untuk library
         recyclerView.layoutManager = GridLayoutManager(this, 3)
         adapter = MangaAdapter(mangas)
         recyclerView.adapter = adapter
 
-        // Load library (bookmark) pertama kali
         loadLibrary()
     }
 
@@ -112,7 +119,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         mangas.clear()
         adapter.notifyDataSetChanged()
 
-        // Tambah infinite scroll listener
         recyclerView.clearOnScrollListeners()
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -139,7 +145,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         isLoading = true
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
+                val doc = Jsoup.connect(nextPageUrl!!).userAgent("Mozilla/5.0").get()
                 val items = doc.select(".listupd .bs")
 
                 val newMangas = items.map { el ->
@@ -148,7 +154,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val href = a?.absUrl("href") ?: ""
                     val cover = el.selectFirst("img")?.absUrl("src") ?: ""
                     val type = el.selectFirst(".type")?.text()?.trim() ?: ""
-
                     MangaItem(title, href, cover, type)
                 }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
 
@@ -166,17 +171,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 withContext(Dispatchers.Main) {
                     progressBottom.visibility = View.GONE
                     isLoading = false
-                    Toast.makeText(this@MainActivity, "Gagal mengambil daftar: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Gagal ambil data: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
-    }
-
-    fun isBookmarked(item: MangaItem): Boolean {
-        val bookmarksJson = prefs.getString("bookmarks", "[]")
-        val type = object : TypeToken<List<MangaItem>>() {}.type
-        val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
-        return bookmarks.any { it.href == item.href }
     }
 
     fun toggleBookmark(item: MangaItem) {
@@ -195,31 +193,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         prefs.edit().putString("bookmarks", gson.toJson(bookmarks)).apply()
 
-        // Refresh jika sedang di library
         if (currentMode == ViewMode.LIBRARY) {
             loadLibrary()
         }
-    }
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.nav_library -> {
-                loadLibrary()
-            }
-            R.id.nav_browse -> {
-                loadBrowse()
-            }
-            R.id.nav_settings -> {
-                // TODO: Buka settings activity
-                Toast.makeText(this, "Settings (coming soon)", Toast.LENGTH_SHORT).show()
-            }
-            R.id.nav_about -> {
-                // TODO: Buka about dialog
-                Toast.makeText(this, "About: Ngomik Reader v1.0", Toast.LENGTH_LONG).show()
-            }
-        }
-        drawerLayout.closeDrawer(GravityCompat.START)
-        return true
     }
 
     override fun onBackPressed() {
@@ -234,7 +210,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         RecyclerView.Adapter<MangaViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MangaViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_manga_grid, parent, false)
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_manga_grid, parent, false)
             return MangaViewHolder(view)
         }
 
