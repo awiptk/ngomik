@@ -4,7 +4,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Toolbar opsional kalau mau ada judul -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/web_toolbar"
         android:layout_width="match_parent"
@@ -12,7 +11,6 @@
         android:background="?attr/colorPrimary"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-    <!-- ProgressBar loading -->
     <ProgressBar
         android:id="@+id/web_progress"
         style="?android:attr/progressBarStyleHorizontal"
@@ -20,7 +18,6 @@
         android:layout_height="4dp"
         android:visibility="gone" />
 
-    <!-- WebView -->
     <WebView
         android:id="@+id/webview"
         android:layout_width="match_parent"
