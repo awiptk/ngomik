@@ -36,4 +36,7 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     // Material Components (opsional, jika menggunakan Material Design)
     implementation 'com.google.android.material:material:1.9.0'
+    // Glide (untuk image loading)
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 }
