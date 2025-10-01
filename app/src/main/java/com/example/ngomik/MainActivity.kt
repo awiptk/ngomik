@@ -95,7 +95,8 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
         navAbout?.setOnClickListener {
-            Toast.makeText(this, "About: Ngomik Reader v1.0", Toast.LENGTH_LONG).show()
+            // buka AboutActivity (bukan Toast)
+            startActivity(Intent(this, AboutActivity::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
@@ -104,7 +105,6 @@ class MainActivity : AppCompatActivity() {
         progressBottom = findViewById(R.id.progress_bottom)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = MangaAdapter(visibleMangas) { item ->
-            // klik item -> buka detail (kamu punya MangaDetailActivity)
             val intent = Intent(this@MainActivity, MangaDetailActivity::class.java)
             intent.putExtra("url", item.href)
             startActivity(intent)
@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            // Open in internal WebView
+            // Open in internal WebView (overflow menu)
             R.id.action_open_web -> {
                 val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
                 val intent = Intent(this, WebViewActivity::class.java)
@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 true
             }
-            // Open in external browser
+            // Open in external browser (overflow menu)
             R.id.action_open_in_browser -> {
                 val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
                 val i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -287,7 +287,6 @@ class MainActivity : AppCompatActivity() {
                     if (newMangas.isNotEmpty()) {
                         adapter.notifyItemRangeInserted(start, newMangas.size)
                     } else {
-                        // jika tidak ada item baru, notify full (safe)
                         adapter.notifyDataSetChanged()
                     }
                     progressBottom.visibility = View.GONE
@@ -313,32 +312,21 @@ class MainActivity : AppCompatActivity() {
                 val url = "$baseDomain/?s=$encoded"
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
 
-                // kumpulkan candidate elements (fallback beberapa selector)
-                val candidates = mutableListOf<org.jsoup.nodes.Element>()
-                candidates.addAll(doc.select(".listupd .bs"))
-                candidates.addAll(doc.select(".bsx .bs"))
-                candidates.addAll(doc.select(".bsx"))
-                candidates.addAll(doc.select(".search .result"))
-                if (candidates.isEmpty()) {
-                    doc.select("a:has(img)").forEach { candidates.add(it) }
-                }
+                // gunakan selector spesifik: hasil pencarian ada di .listupd, tiap entry di .bsx > a[href]
+                val elements = doc.select(".listupd .bsx > a[href]")
+                // fallback lebih umum bila tidak ada
+                val finalElems = if (elements.isEmpty()) doc.select(".listupd .bs a[href]") else elements
 
-                // gunakan LinkedHashMap untuk deduplikasi berdasarkan href (preserve order)
                 val map = linkedMapOf<String, MangaItem>()
-                for (el in candidates) {
-                    val a = el.selectFirst("a[href]") ?: continue
+                for (a in finalElems) {
                     val href = a.absUrl("href").ifBlank { continue }
-                    // jika sudah ada, skip
                     if (map.containsKey(href)) continue
-
-                    val title = el.selectFirst(".tt")?.text()?.trim()
-                        ?: a.attr("title").takeIf { it.isNotBlank() }
-                        ?: a.text().takeIf { it.isNotBlank() }
-                        ?: el.selectFirst("img")?.attr("alt") ?: ""
-                    val cover = el.selectFirst("img")?.absUrl("src") ?: ""
-
+                    val title = a.attr("title").takeIf { it.isNotBlank() }
+                        ?: a.selectFirst(".tt")?.text()?.trim()
+                        ?: a.text()?.trim()
+                        ?: ""
                     if (title.isBlank()) continue
-
+                    val cover = a.selectFirst("img")?.absUrl("src") ?: ""
                     map[href] = MangaItem(title, href, cover, "")
                 }
 
@@ -438,7 +426,6 @@ class MainActivity : AppCompatActivity() {
             holder.titleTv.text = item.title
 
             val coverUrl = try {
-                // kalau cover kosong, biarkan kosong (Glide akan handle)
                 if (item.cover.isBlank()) ""
                 else "https://images.weserv.nl/?w=300&q=70&url=" + URLEncoder.encode(item.cover, "UTF-8")
             } catch (e: Exception) {
