@@ -1,28 +1,35 @@
 <resources>
     <!-- Base application theme -->
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorPrimary">#1E1E1E</item>
+        <item name="colorPrimaryDark">#000000</item>
+        <item name="colorAccent">#4CAF50</item>
         
-        <!-- Modern popup menu style -->
-        <item name="actionOverflowMenuStyle">@style/OverflowMenuStyle</item>
-        <item name="popupMenuStyle">@style/PopupMenuStyle</item>
+        <!-- Styling untuk toolbar -->
+        <item name="actionBarStyle">@style/CustomActionBar</item>
+        
+        <!-- Popup menu modern -->
+        <item name="popupMenuStyle">@style/PopupMenu</item>
+        <item name="actionOverflowMenuStyle">@style/OverflowMenu</item>
     </style>
 
-    <!-- Overflow Menu Modern Style -->
-    <style name="OverflowMenuStyle" parent="Widget.MaterialComponents.PopupMenu.Overflow">
-        <item name="android:dropDownVerticalOffset">4dp</item>
-        <item name="android:dropDownHorizontalOffset">-4dp</item>
-        <item name="android:popupBackground">@drawable/popup_menu_background</item>
+    <!-- Custom ActionBar -->
+    <style name="CustomActionBar" parent="Widget.MaterialComponents.ActionBar.Primary">
+        <item name="elevation">4dp</item>
+    </style>
+
+    <!-- Modern Popup Menu -->
+    <style name="PopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:dropDownVerticalOffset">8dp</item>
+        <item name="android:dropDownHorizontalOffset">0dp</item>
         <item name="android:popupElevation">8dp</item>
     </style>
 
-    <!-- Popup Menu Style -->
-    <style name="PopupMenuStyle" parent="Widget.MaterialComponents.PopupMenu">
-        <item name="android:popupBackground">@drawable/popup_menu_background</item>
+    <!-- Modern Overflow Menu -->
+    <style name="OverflowMenu" parent="Widget.MaterialComponents.PopupMenu.Overflow">
+        <item name="android:dropDownVerticalOffset">8dp</item>
+        <item name="android:dropDownHorizontalOffset">-8dp</item>
         <item name="android:popupElevation">8dp</item>
-        <item name="android:dropDownVerticalOffset">4dp</item>
     </style>
 
 </resources>
