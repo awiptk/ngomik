@@ -2,6 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- Search -->
     <item
         android:id="@+id/action_search"
         android:title="Search"
@@ -9,30 +10,16 @@
         app:showAsAction="ifRoom|collapseActionView"
         app:actionViewClass="androidx.appcompat.widget.SearchView" />
 
+    <!-- Open in WebView -->
     <item
-        android:id="@+id/action_more"
-        android:title="More"
-        android:icon="@android:drawable/ic_menu_more"
-        app:showAsAction="always">
-        <menu>
-            <item
-                android:id="@+id/action_open_web"
-                android:title="Open in app"
-                android:icon="@android:drawable/ic_menu_view"
-                app:showAsAction="never" />
+        android:id="@+id/action_open_web"
+        android:title="Open in WebView"
+        app:showAsAction="never" />
 
-            <item
-                android:id="@+id/action_open_in_browser"
-                android:title="Open in browser"
-                android:icon="@android:drawable/ic_menu_share"
-                app:showAsAction="never" />
-
-            <item
-                android:id="@+id/action_about"
-                android:title="About"
-                android:icon="@android:drawable/ic_menu_info_details"
-                app:showAsAction="never" />
-        </menu>
-    </item>
+    <!-- Open in Browser -->
+    <item
+        android:id="@+id/action_open_in_browser"
+        android:title="Open in Browser"
+        app:showAsAction="never" />
 
 </menu>
