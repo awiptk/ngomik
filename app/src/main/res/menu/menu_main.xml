@@ -10,16 +10,17 @@
         app:showAsAction="ifRoom|collapseActionView"
         app:actionViewClass="androidx.appcompat.widget.SearchView" />
 
-    <!-- Open in WebView -->
     <item
         android:id="@+id/action_open_web"
-        android:title="Open in WebView"
+        android:title="Open in app"
+        android:icon="@android:drawable/ic_menu_view"
         app:showAsAction="never" />
 
-    <!-- Open in Browser -->
+    <!-- Open in Browser (External) -->
     <item
         android:id="@+id/action_open_in_browser"
-        android:title="Open in Browser"
+        android:title="Open in browser"
+        android:icon="@android:drawable/ic_menu_share"
         app:showAsAction="never" />
 
 </menu>
