@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    card_view:cardCornerRadius="8dp"
+    android:layout_margin="8dp"
+    card_view:cardElevation="2dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/cover"
+            android:layout_width="80dp"
+            android:layout_height="110dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="cover" />
+
+        <!-- overlay gelap muncul saat sudah di-bookmark -->
+        <View
+            android:id="@+id/dim_overlay"
+            android:layout_width="80dp"
+            android:layout_height="110dp"
+            android:background="#80000000"
+            android:visibility="gone"
+            android:layout_alignTop="@id/cover"
+            android:layout_alignStart="@id/cover" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_toEndOf="@id/cover"
+            android:layout_marginStart="12dp"
+            android:layout_alignTop="@id/cover"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:maxLines="3"
+            android:ellipsize="end"/>
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>
