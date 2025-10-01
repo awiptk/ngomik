@@ -9,7 +9,6 @@
     android:clickable="true"
     android:focusable="true">
 
-    <!-- bungkus ImageView + overlay di FrameLayout agar overlay hanya menutupi gambar -->
     <FrameLayout
         android:layout_width="48dp"
         android:layout_height="48dp">
@@ -20,7 +19,8 @@
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
             android:contentDescription="cover"
-            android:clipToOutline="true"            android:background="@drawable/circle_mask" />
+            android:clipToOutline="true"
+            android:background="@drawable/circle_mask" />
 
         <View
             android:id="@+id/dim_overlay"
@@ -30,7 +30,6 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- Judul manga -->
     <TextView
         android:id="@+id/title"
         android:layout_width="0dp"
