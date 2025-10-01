@@ -11,7 +11,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Theme.Ngomik"
         android:usesCleartextTraffic="true">
 
         <!-- MainActivity - Launcher Activity -->
@@ -49,7 +49,7 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
 
-        <!-- AboutActivity - YANG KURANG INI -->
+        <!-- AboutActivity -->
         <activity
             android:name=".AboutActivity"
             android:exported="false"
