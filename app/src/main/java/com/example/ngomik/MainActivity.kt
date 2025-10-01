@@ -36,10 +36,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        recyclerView = findViewById(R.id.recyclerView)  // Ubah ID dari listView ke recyclerView di XML
+        recyclerView = findViewById(R.id.recyclerView)  // Pastikan ID ini sesuai di activity_main.xml
         progress = findViewById(R.id.progress)
 
-        // Tambah switch untuk dark mode
+        // Tambah switch untuk dark mode (asumsi ID dark_mode_switch ada di XML)
         val darkModeSwitch: Switch? = findViewById(R.id.dark_mode_switch)
         darkModeSwitch?.isChecked = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
         darkModeSwitch?.setOnCheckedChangeListener { _, isChecked ->
@@ -121,13 +121,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class MangaAdapter(private val items: List<MangaItem>) :
-        RecyclerView.Adapter<MangaAdapter.MangaViewHolder>() {
-
-        class MangaViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val coverIv: ImageView = view.findViewById(R.id.cover)
-            val titleTv: TextView = view.findViewById(R.id.title)
-            val typeTv: TextView = view.findViewById(R.id.type)
-        }
+        RecyclerView.Adapter<MangaViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MangaViewHolder {
             val view = LayoutInflater.from(parent.context).inflate(R.layout.item_manga, parent, false)
@@ -160,4 +154,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun getItemCount(): Int = items.size
     }
+}
+
+class MangaViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val coverIv: ImageView = view.findViewById(R.id.cover)
+    val titleTv: TextView = view.findViewById(R.id.title)
+    val typeTv: TextView = view.findViewById(R.id.type)
 }
