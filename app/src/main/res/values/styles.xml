@@ -12,5 +12,10 @@
 
         <!-- Warna background -->
         <item name="android:windowBackground">#121212</item>
+        
+        <!-- Color states untuk NavigationView -->
+        <item name="colorControlNormal">#FFFFFF</item>
+        <item name="colorControlActivated">#BB86FC</item>
+        <item name="colorControlHighlight">#33BB86FC</item>
     </style>
 </resources>
