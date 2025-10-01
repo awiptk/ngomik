@@ -2,9 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
 
-    <!-- Switch untuk dark mode -->
     <Switch
         android:id="@+id/dark_mode_switch"
         android:layout_width="wrap_content"
@@ -14,7 +13,6 @@
         android:text="Mode Malam"
         android:layout_margin="16dp" />
 
-    <!-- Progress Loading -->
     <ProgressBar
         android:id="@+id/progress"
         style="?android:attr/progressBarStyleLarge"
@@ -23,15 +21,13 @@
         android:layout_centerInParent="true"
         android:indeterminateTint="#6200EE" />
 
-    <!-- ListView dengan padding -->
-    <ListView
-        android:id="@+id/listView"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:divider="@android:color/darker_gray"
-        android:dividerHeight="1dp"
-        android:padding="12dp"
         android:clipToPadding="false"
-        android:layout_below="@id/dark_mode_switch" /> <!-- Di bawah switch -->
+        android:padding="12dp"
+        android:scrollbars="vertical"
+        android:layout_below="@id/dark_mode_switch" />
 
 </RelativeLayout>
