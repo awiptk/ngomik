@@ -44,8 +44,18 @@ jobs:
             git clone --recurse-submodules --depth=1 --branch ${{ github.event.inputs.branchName }} ${{ github.event.inputs.repository }} workspace
           fi
 
+      - name: Clear Gradle cache (local and global)
+        run: |
+          set -euo pipefail
+          echo "Removing Gradle caches to ensure clean build..."
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/daemon/
+          rm -rf ~/.gradle/native/
+          rm -rf ~/.gradle/wrapper/
+          rm -rf workspace/.gradle/
+          echo "Gradle cache cleared."
+
       - name: Build APK
-        # if subdir is empty, working-directory resolves to ./workspace/
         working-directory: ./workspace/${{ github.event.inputs.subdir }}
         run: |
           set -euo pipefail
@@ -96,10 +106,10 @@ jobs:
               -Pandroid.injected.signing.store.password=android \
               -Pandroid.injected.signing.key.alias=androiddebugkey \
               -Pandroid.injected.signing.key.password=android \
-              --stacktrace
+              --stacktrace --refresh-dependencies
           else
             echo "Running ./gradlew ${{ github.event.inputs.taskName }} (non-release)..."
-            ./gradlew ${{ github.event.inputs.taskName }} --stacktrace
+            ./gradlew ${{ github.event.inputs.taskName }} --stacktrace --refresh-dependencies
           fi
 
       - name: Upload the APK artifact with 1 day retention
