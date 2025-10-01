@@ -9,26 +9,13 @@
     android:clickable="true"
     android:focusable="true">
 
-    <FrameLayout
+    <ImageView
+        android:id="@+id/cover"
         android:layout_width="48dp"
-        android:layout_height="48dp">
-
-        <ImageView
-            android:id="@+id/cover"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="centerCrop"
-            android:contentDescription="cover"
-            android:clipToOutline="true"
-            android:background="@drawable/circle_mask" />
-
-        <View
-            android:id="@+id/dim_overlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#66000000"
-            android:visibility="gone" />
-    </FrameLayout>
+        android:layout_height="48dp"
+        android:scaleType="centerCrop"
+        android:contentDescription="cover"
+        android:background="@drawable/circle_mask" />
 
     <TextView
         android:id="@+id/title"
@@ -40,5 +27,12 @@
         android:textSize="16sp"
         android:ellipsize="end"
         android:singleLine="true" />
+
+    <View
+        android:id="@+id/dim_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000"
+        android:visibility="gone" />
 
 </LinearLayout>
