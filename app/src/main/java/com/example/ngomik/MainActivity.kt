@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.SearchView
@@ -40,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBottom: ProgressBar
     private var mangas: MutableList<MangaItem> = mutableListOf()
-    private var visibleMangas: MutableList<MangaItem> = mutableListOf() // untuk filter (Search)
+    private var visibleMangas: MutableList<MangaItem> = mutableListOf()
     private lateinit var adapter: MangaAdapter
     private var nextPageUrl: String? = null
     private var isLoading = false
@@ -48,26 +49,25 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private val gson = Gson()
+    private var doubleBackToExit = false // untuk back press 2x
 
     enum class ViewMode {
         LIBRARY, BROWSE
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Dark mode default
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         prefs = getSharedPreferences("manga_prefs", MODE_PRIVATE)
 
-        // Setup toolbar
+        // Toolbar
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        // Setup drawer
+        // Drawer
         drawerLayout = findViewById(R.id.drawer_layout)
-
         val toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
-        // Ambil menu TextView manual (pastikan id ada di layout)
+        // Menu Drawer
         val navLibrary: TextView = findViewById(R.id.nav_library)
         val navBrowse: TextView = findViewById(R.id.nav_browse)
         val navSettings: TextView? = findViewById(R.id.nav_settings)
@@ -85,40 +85,35 @@ class MainActivity : AppCompatActivity() {
             loadLibrary()
             drawerLayout.closeDrawer(GravityCompat.START)
         }
-
         navBrowse.setOnClickListener {
             loadBrowse()
             drawerLayout.closeDrawer(GravityCompat.START)
         }
-
         navSettings?.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
-
         navAbout?.setOnClickListener {
             Toast.makeText(this, "About: Ngomik Reader v1.0", Toast.LENGTH_LONG).show()
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
+        // RecyclerView
         recyclerView = findViewById(R.id.recyclerView)
         progressBottom = findViewById(R.id.progress_bottom)
-
-        // pakai LinearLayoutManager untuk list (bukan grid)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = MangaAdapter(visibleMangas) { item ->
-            // onClick
             val intent = Intent(this@MainActivity, MangaDetailActivity::class.java)
             intent.putExtra("url", item.href)
             startActivity(intent)
         }
         recyclerView.adapter = adapter
 
-        // load awal: library
+        // Load awal
         loadLibrary()
     }
 
-    // --- Menu (search) ---
+    // --- Menu (Search + Open Web) ---
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         val searchItem = menu?.findItem(R.id.action_search)
@@ -139,6 +134,18 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_open_web -> {
+                val intent = Intent(this, WebViewActivity::class.java)
+                intent.putExtra("url", "https://id.ngomik.cloud")
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     private fun filterList(q: String) {
         val qLower = q.trim().lowercase()
         visibleMangas.clear()
@@ -150,12 +157,11 @@ class MainActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    // --- LOAD LIBRARY (local bookmarks) ---
+    // --- LOAD LIBRARY ---
     private fun loadLibrary() {
         currentMode = ViewMode.LIBRARY
         supportActionBar?.title = "Library"
 
-        // hentikan behaviour browse
         recyclerView.clearOnScrollListeners()
         nextPageUrl = null
         isLoading = false
@@ -167,7 +173,6 @@ class MainActivity : AppCompatActivity() {
         mangas.clear()
         mangas.addAll(bookmarks)
 
-        // visible = semua mangas saat ini (untuk search)
         visibleMangas.clear()
         visibleMangas.addAll(mangas)
         adapter.notifyDataSetChanged()
@@ -177,21 +182,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- LOAD BROWSE (remote scraping) ---
+    // --- LOAD BROWSE ---
     private fun loadBrowse() {
         currentMode = ViewMode.BROWSE
         supportActionBar?.title = "Browse"
 
-        // reset list & prepare infinite scroll
         mangas.clear()
         visibleMangas.clear()
         adapter.notifyDataSetChanged()
 
-        // build base domain from prefs
         val baseDomain = prefs.getString("base_domain", "https://id.ngomik.cloud")!!
         nextPageUrl = "$baseDomain/manga/?order=update"
 
-        // add infinite scroll listener
         recyclerView.clearOnScrollListeners()
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
@@ -201,10 +203,10 @@ class MainActivity : AppCompatActivity() {
                 val totalItemCount = layoutManager.itemCount
                 val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                // trigger load when reaching end
                 if (!isLoading && nextPageUrl != null &&
                     (visibleItemCount + firstVisibleItemPosition) >= totalItemCount &&
-                    firstVisibleItemPosition >= 0) {
+                    firstVisibleItemPosition >= 0
+                ) {
                     fetchMangaList()
                 }
             }
@@ -231,13 +233,11 @@ class MainActivity : AppCompatActivity() {
                     MangaItem(title, href, cover, type)
                 }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
 
-                // next page
                 nextPageUrl = doc.selectFirst("a.next.page-numbers")?.absUrl("href")
 
                 withContext(Dispatchers.Main) {
                     val start = mangas.size
                     mangas.addAll(newMangas)
-                    // visible follows mangas unless search active
                     visibleMangas.addAll(newMangas)
                     adapter.notifyItemRangeInserted(start, newMangas.size)
                     progressBottom.visibility = View.GONE
@@ -254,7 +254,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Bookmarks helpers ---
+    // --- Bookmarks ---
     fun isBookmarked(item: MangaItem): Boolean {
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
@@ -278,24 +278,31 @@ class MainActivity : AppCompatActivity() {
 
         prefs.edit().putString("bookmarks", gson.toJson(bookmarks)).apply()
 
-        // jika sedang di library, refresh
         if (currentMode == ViewMode.LIBRARY) {
             loadLibrary()
         } else {
-            // jika di browse, hanya update tampilan visible (dim overlay)
             adapter.notifyDataSetChanged()
         }
     }
 
+    // --- Double back to exit ---
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
         } else {
-            super.onBackPressed()
+            if (doubleBackToExit) {
+                super.onBackPressed()
+                return
+            }
+            doubleBackToExit = true
+            Toast.makeText(this, "Tekan sekali lagi untuk keluar", Toast.LENGTH_SHORT).show()
+            android.os.Handler(mainLooper).postDelayed({
+                doubleBackToExit = false
+            }, 2000)
         }
     }
 
-    // --- Adapter inner class (list) ---
+    // --- Adapter ---
     inner class MangaAdapter(
         private val items: List<MangaItem>,
         private val onItemClick: (MangaItem) -> Unit
@@ -311,12 +318,10 @@ class MainActivity : AppCompatActivity() {
             val item = items[position]
             holder.titleTv.text = item.title
 
-            // prepend proxy weserv.nl ke url cover (encode supaya aman)
             val coverUrl = try {
                 val encoded = URLEncoder.encode(item.cover, "UTF-8")
                 "https://images.weserv.nl/?w=300&q=70&url=$encoded"
             } catch (e: Exception) {
-                // kalau encoding gagal, fallback ke original
                 item.cover
             }
 
@@ -325,13 +330,12 @@ class MainActivity : AppCompatActivity() {
                 .apply(
                     RequestOptions()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .circleCrop() // bikin bulat
+                        .circleCrop()
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_report_image)
                 )
                 .into(holder.coverIv)
 
-            // tandai jika sudah di bookmark -> overlay gelap + text alpha
             if (isBookmarked(item)) {
                 holder.overlay.visibility = View.VISIBLE
                 holder.titleTv.alpha = 0.6f
@@ -340,10 +344,7 @@ class MainActivity : AppCompatActivity() {
                 holder.titleTv.alpha = 1.0f
             }
 
-            holder.itemView.setOnClickListener {
-                onItemClick(item)
-            }
-
+            holder.itemView.setOnClickListener { onItemClick(item) }
             holder.itemView.setOnLongClickListener {
                 toggleBookmark(item)
                 true
