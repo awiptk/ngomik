@@ -119,7 +119,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
 
-        // Pastikan menu_main.xml menggunakan app:actionViewClass="androidx.appcompat.widget.SearchView"
         val searchItem = menu?.findItem(R.id.action_search)
         val searchView = searchItem?.actionView as? SearchView
 
@@ -139,13 +138,11 @@ class MainActivity : AppCompatActivity() {
                 val q = newText?.trim().orEmpty()
                 if (currentMode == ViewMode.BROWSE) {
                     if (q.isBlank()) {
-                        // kosongkan search -> kembali ke tampilan browse default
                         currentSearchJob?.cancel()
                         loadBrowse()
                     } else if (q.length >= 3) {
                         performSearchWithCancel(q)
                     }
-                    // jika <3 chars, tunggu user mengetik
                 } else {
                     filterList(q)
                 }
@@ -269,7 +266,7 @@ class MainActivity : AppCompatActivity() {
                 val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
                 // page listing selector
                 val items = doc.select(".listupd .bs")
-                val newMangas = items.map { el ->
+                val newMangasAll = items.map { el ->
                     val a = el.selectFirst("a")
                     val title = el.selectFirst(".tt")?.text()?.trim() ?: a?.attr("title") ?: a?.text() ?: ""
                     val href = a?.absUrl("href") ?: ""
@@ -278,13 +275,21 @@ class MainActivity : AppCompatActivity() {
                     MangaItem(title, href, cover, type)
                 }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
 
+                // filter out duplicates already present in mangas (prevent doubling)
+                val newMangas = newMangasAll.filter { nm -> mangas.none { it.href == nm.href } }
+
                 nextPageUrl = doc.selectFirst("a.next.page-numbers")?.absUrl("href")
 
                 withContext(Dispatchers.Main) {
                     val start = mangas.size
                     mangas.addAll(newMangas)
                     visibleMangas.addAll(newMangas)
-                    adapter.notifyItemRangeInserted(start, newMangas.size)
+                    if (newMangas.isNotEmpty()) {
+                        adapter.notifyItemRangeInserted(start, newMangas.size)
+                    } else {
+                        // jika tidak ada item baru, notify full (safe)
+                        adapter.notifyDataSetChanged()
+                    }
                     progressBottom.visibility = View.GONE
                     isLoading = false
                 }
@@ -308,30 +313,36 @@ class MainActivity : AppCompatActivity() {
                 val url = "$baseDomain/?s=$encoded"
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
 
-                // coba beberapa selector yang mungkin muncul di hasil pencarian
+                // kumpulkan candidate elements (fallback beberapa selector)
                 val candidates = mutableListOf<org.jsoup.nodes.Element>()
                 candidates.addAll(doc.select(".listupd .bs"))
                 candidates.addAll(doc.select(".bsx .bs"))
                 candidates.addAll(doc.select(".bsx"))
                 candidates.addAll(doc.select(".search .result"))
-                // fallback: ambil semua entry yang punya <a> dan <img>
                 if (candidates.isEmpty()) {
                     doc.select("a:has(img)").forEach { candidates.add(it) }
                 }
 
-                val results = candidates.mapNotNull { el ->
-                    val a = el.selectFirst("a[href]") ?: return@mapNotNull null
-                    val href = a.absUrl("href")
-                    if (href.isBlank()) return@mapNotNull null
+                // gunakan LinkedHashMap untuk deduplikasi berdasarkan href (preserve order)
+                val map = linkedMapOf<String, MangaItem>()
+                for (el in candidates) {
+                    val a = el.selectFirst("a[href]") ?: continue
+                    val href = a.absUrl("href").ifBlank { continue }
+                    // jika sudah ada, skip
+                    if (map.containsKey(href)) continue
+
                     val title = el.selectFirst(".tt")?.text()?.trim()
                         ?: a.attr("title").takeIf { it.isNotBlank() }
                         ?: a.text().takeIf { it.isNotBlank() }
                         ?: el.selectFirst("img")?.attr("alt") ?: ""
                     val cover = el.selectFirst("img")?.absUrl("src") ?: ""
-                    if (title.isBlank()) return@mapNotNull null
-                    MangaItem(title, href, cover, "")
-                }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
-                results
+
+                    if (title.isBlank()) continue
+
+                    map[href] = MangaItem(title, href, cover, "")
+                }
+
+                map.values.toList()
             } catch (e: Exception) {
                 e.printStackTrace()
                 emptyList()
