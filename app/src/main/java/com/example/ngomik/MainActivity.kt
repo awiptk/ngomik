@@ -2,26 +2,26 @@ package com.example.ngomik
 
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
-import android.widget.SearchView
-import android.widget.Toast
-import android.widget.ImageView
-import android.widget.TextView
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.widget.Toast
+import android.widget.ImageView
+import android.widget.TextView
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity() {
 
         // Drawer
         drawerLayout = findViewById(R.id.drawer_layout)
-        val toggle = ActionBarDrawerToggle(
+        val toggle = androidx.appcompat.app.ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         progressBottom = findViewById(R.id.progress_bottom)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = MangaAdapter(visibleMangas) { item ->
+            // klik item -> buka detail (kamu punya MangaDetailActivity)
             val intent = Intent(this@MainActivity, MangaDetailActivity::class.java)
             intent.putExtra("url", item.href)
             startActivity(intent)
@@ -114,16 +115,18 @@ class MainActivity : AppCompatActivity() {
         loadLibrary()
     }
 
-    // --- Menu (Search + Open Web) ---
+    // --- Menu (Search + Overflow with web options) ---
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+
+        // Pastikan menu_main.xml menggunakan app:actionViewClass="androidx.appcompat.widget.SearchView"
         val searchItem = menu?.findItem(R.id.action_search)
         val searchView = searchItem?.actionView as? SearchView
 
         searchView?.queryHint = "Search..."
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                val q = query ?: ""
+                val q = query?.trim().orEmpty()
                 if (currentMode == ViewMode.BROWSE) {
                     performSearchWithCancel(q)
                 } else {
@@ -133,31 +136,41 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                val q = newText ?: ""
+                val q = newText?.trim().orEmpty()
                 if (currentMode == ViewMode.BROWSE) {
-                    // debounce: hanya search kalau >= 3 char, atau kosong untuk reload browse
                     if (q.isBlank()) {
-                        // cancel pending search and reload default browse
+                        // kosongkan search -> kembali ke tampilan browse default
                         currentSearchJob?.cancel()
                         loadBrowse()
                     } else if (q.length >= 3) {
                         performSearchWithCancel(q)
-                    } // else do nothing yet
+                    }
+                    // jika <3 chars, tunggu user mengetik
                 } else {
                     filterList(q)
                 }
                 return true
             }
         })
+
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            // Open in internal WebView
             R.id.action_open_web -> {
+                val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
                 val intent = Intent(this, WebViewActivity::class.java)
-                intent.putExtra("url", prefs.getString("base_domain", "https://id.ngomik.cloud"))
+                intent.putExtra("url", url)
                 startActivity(intent)
+                true
+            }
+            // Open in external browser
+            R.id.action_open_in_browser -> {
+                val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
+                val i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                startActivity(Intent.createChooser(i, "Open with"))
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -168,8 +181,7 @@ class MainActivity : AppCompatActivity() {
     private fun performSearchWithCancel(query: String) {
         currentSearchJob?.cancel()
         currentSearchJob = lifecycleScope.launch {
-            // small debounce
-            delay(250)
+            delay(250) // debounce 250ms
             searchOnline(query)
         }
     }
@@ -238,7 +250,8 @@ class MainActivity : AppCompatActivity() {
                 // trigger load when reaching end
                 if (!isLoading && nextPageUrl != null &&
                     (visibleItemCount + firstVisibleItemPosition) >= totalItemCount &&
-                    firstVisibleItemPosition >= 0) {
+                    firstVisibleItemPosition >= 0
+                ) {
                     fetchMangaList()
                 }
             }
@@ -254,11 +267,11 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
+                // page listing selector
                 val items = doc.select(".listupd .bs")
-
                 val newMangas = items.map { el ->
                     val a = el.selectFirst("a")
-                    val title = el.selectFirst(".tt")?.text()?.trim() ?: ""
+                    val title = el.selectFirst(".tt")?.text()?.trim() ?: a?.attr("title") ?: a?.text() ?: ""
                     val href = a?.absUrl("href") ?: ""
                     val cover = el.selectFirst("img")?.absUrl("src") ?: ""
                     val type = el.selectFirst(".type")?.text()?.trim() ?: ""
@@ -295,16 +308,28 @@ class MainActivity : AppCompatActivity() {
                 val url = "$baseDomain/?s=$encoded"
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
 
-                // coba beberapa selector yang umum di site ini
-                val items = doc.select(".listupd .bs, .bsx .bs, .bsx")
-                val results = items.map { el ->
-                    val a = el.selectFirst("a")
+                // coba beberapa selector yang mungkin muncul di hasil pencarian
+                val candidates = mutableListOf<org.jsoup.nodes.Element>()
+                candidates.addAll(doc.select(".listupd .bs"))
+                candidates.addAll(doc.select(".bsx .bs"))
+                candidates.addAll(doc.select(".bsx"))
+                candidates.addAll(doc.select(".search .result"))
+                // fallback: ambil semua entry yang punya <a> dan <img>
+                if (candidates.isEmpty()) {
+                    doc.select("a:has(img)").forEach { candidates.add(it) }
+                }
+
+                val results = candidates.mapNotNull { el ->
+                    val a = el.selectFirst("a[href]") ?: return@mapNotNull null
+                    val href = a.absUrl("href")
+                    if (href.isBlank()) return@mapNotNull null
                     val title = el.selectFirst(".tt")?.text()?.trim()
-                        ?: a?.attr("title") ?: a?.text() ?: ""
-                    val href = a?.absUrl("href") ?: ""
+                        ?: a.attr("title").takeIf { it.isNotBlank() }
+                        ?: a.text().takeIf { it.isNotBlank() }
+                        ?: el.selectFirst("img")?.attr("alt") ?: ""
                     val cover = el.selectFirst("img")?.absUrl("src") ?: ""
-                    val type = el.selectFirst(".type")?.text()?.trim() ?: ""
-                    MangaItem(title, href, cover, type)
+                    if (title.isBlank()) return@mapNotNull null
+                    MangaItem(title, href, cover, "")
                 }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
                 results
             } catch (e: Exception) {
@@ -402,14 +427,15 @@ class MainActivity : AppCompatActivity() {
             holder.titleTv.text = item.title
 
             val coverUrl = try {
-                val encoded = URLEncoder.encode(item.cover, "UTF-8")
-                "https://images.weserv.nl/?w=300&q=70&url=$encoded"
+                // kalau cover kosong, biarkan kosong (Glide akan handle)
+                if (item.cover.isBlank()) ""
+                else "https://images.weserv.nl/?w=300&q=70&url=" + URLEncoder.encode(item.cover, "UTF-8")
             } catch (e: Exception) {
                 item.cover
             }
 
             Glide.with(holder.coverIv.context)
-                .load(coverUrl)
+                .load(if (coverUrl.isBlank()) null else coverUrl)
                 .apply(
                     RequestOptions()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
