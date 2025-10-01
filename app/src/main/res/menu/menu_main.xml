@@ -3,16 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_search"
-        android:title="Search"
-        android:icon="@android:drawable/ic_menu_search"
-        app:showAsAction="ifRoom|collapseActionView"
-        app:actionViewClass="androidx.appcompat.widget.SearchView" />
+    android:id="@+id/action_search"
+    android:title="Search"
+    android:icon="@android:drawable/ic_menu_search"
+    app:showAsAction="ifRoom|collapseActionView"
+    app:actionViewClass="androidx.appcompat.widget.SearchView" />
 
-    <item
-        android:id="@+id/action_open_web"
-        android:title="Open Web"
-        android:icon="@android:drawable/ic_menu_view"
-        app:showAsAction="ifRoom" />
+<item
+    android:id="@+id/action_open_web"
+    android:title="Open in app"
+    android:icon="@android:drawable/ic_menu_view"
+    app:showAsAction="never" />
+
+<item
+    android:id="@+id/action_open_in_browser"
+    android:title="Open in browser"
+    android:icon="@android:drawable/ic_menu_more"
+    app:showAsAction="never" />
 
 </menu>
