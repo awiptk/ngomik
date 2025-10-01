@@ -4,7 +4,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.SearchView
@@ -31,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import java.net.URLEncoder
 
 data class MangaItem(val title: String, val href: String, val cover: String, val type: String)
 
@@ -311,11 +311,21 @@ class MainActivity : AppCompatActivity() {
             val item = items[position]
             holder.titleTv.text = item.title
 
+            // prepend proxy weserv.nl ke url cover (encode supaya aman)
+            val coverUrl = try {
+                val encoded = URLEncoder.encode(item.cover, "UTF-8")
+                "https://images.weserv.nl/?w=300&q=70&url=$encoded"
+            } catch (e: Exception) {
+                // kalau encoding gagal, fallback ke original
+                item.cover
+            }
+
             Glide.with(holder.coverIv.context)
-                .load(item.cover)
+                .load(coverUrl)
                 .apply(
                     RequestOptions()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .circleCrop() // bikin bulat
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_report_image)
                 )
