@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -26,10 +27,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.jsoup.Jsoup
 import java.net.URLEncoder
 
@@ -50,6 +48,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private val gson = Gson()
     private var doubleBackToExit = false // untuk back press 2x
+
+    // job untuk search debounce / cancel previous
+    private var currentSearchJob: Job? = null
 
     enum class ViewMode {
         LIBRARY, BROWSE
@@ -122,12 +123,29 @@ class MainActivity : AppCompatActivity() {
         searchView?.queryHint = "Search..."
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                filterList(query ?: "")
+                val q = query ?: ""
+                if (currentMode == ViewMode.BROWSE) {
+                    performSearchWithCancel(q)
+                } else {
+                    filterList(q)
+                }
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                filterList(newText ?: "")
+                val q = newText ?: ""
+                if (currentMode == ViewMode.BROWSE) {
+                    // debounce: hanya search kalau >= 3 char, atau kosong untuk reload browse
+                    if (q.isBlank()) {
+                        // cancel pending search and reload default browse
+                        currentSearchJob?.cancel()
+                        loadBrowse()
+                    } else if (q.length >= 3) {
+                        performSearchWithCancel(q)
+                    } // else do nothing yet
+                } else {
+                    filterList(q)
+                }
                 return true
             }
         })
@@ -138,11 +156,21 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.action_open_web -> {
                 val intent = Intent(this, WebViewActivity::class.java)
-                intent.putExtra("url", "https://id.ngomik.cloud")
+                intent.putExtra("url", prefs.getString("base_domain", "https://id.ngomik.cloud"))
                 startActivity(intent)
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    // helper: cancel previous job and start a new debounced search
+    private fun performSearchWithCancel(query: String) {
+        currentSearchJob?.cancel()
+        currentSearchJob = lifecycleScope.launch {
+            // small debounce
+            delay(250)
+            searchOnline(query)
         }
     }
 
@@ -162,6 +190,7 @@ class MainActivity : AppCompatActivity() {
         currentMode = ViewMode.LIBRARY
         supportActionBar?.title = "Library"
 
+        // hentikan behaviour browse
         recyclerView.clearOnScrollListeners()
         nextPageUrl = null
         isLoading = false
@@ -187,13 +216,16 @@ class MainActivity : AppCompatActivity() {
         currentMode = ViewMode.BROWSE
         supportActionBar?.title = "Browse"
 
+        // reset list & prepare infinite scroll
         mangas.clear()
         visibleMangas.clear()
         adapter.notifyDataSetChanged()
 
+        // build base domain from prefs
         val baseDomain = prefs.getString("base_domain", "https://id.ngomik.cloud")!!
         nextPageUrl = "$baseDomain/manga/?order=update"
 
+        // add infinite scroll listener
         recyclerView.clearOnScrollListeners()
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
@@ -203,10 +235,10 @@ class MainActivity : AppCompatActivity() {
                 val totalItemCount = layoutManager.itemCount
                 val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
+                // trigger load when reaching end
                 if (!isLoading && nextPageUrl != null &&
                     (visibleItemCount + firstVisibleItemPosition) >= totalItemCount &&
-                    firstVisibleItemPosition >= 0
-                ) {
+                    firstVisibleItemPosition >= 0) {
                     fetchMangaList()
                 }
             }
@@ -219,7 +251,7 @@ class MainActivity : AppCompatActivity() {
         if (nextPageUrl == null) return
         progressBottom.visibility = View.VISIBLE
         isLoading = true
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
                 val items = doc.select(".listupd .bs")
@@ -251,6 +283,57 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "Gagal ambil data: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    // --- Search online (untuk Browse) ---
+    private suspend fun searchOnlineBlocking(query: String): List<MangaItem> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val baseDomain = prefs.getString("base_domain", "https://id.ngomik.cloud")!!
+                val encoded = URLEncoder.encode(query, "UTF-8")
+                val url = "$baseDomain/?s=$encoded"
+                val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
+
+                // coba beberapa selector yang umum di site ini
+                val items = doc.select(".listupd .bs, .bsx .bs, .bsx")
+                val results = items.map { el ->
+                    val a = el.selectFirst("a")
+                    val title = el.selectFirst(".tt")?.text()?.trim()
+                        ?: a?.attr("title") ?: a?.text() ?: ""
+                    val href = a?.absUrl("href") ?: ""
+                    val cover = el.selectFirst("img")?.absUrl("src") ?: ""
+                    val type = el.selectFirst(".type")?.text()?.trim() ?: ""
+                    MangaItem(title, href, cover, type)
+                }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
+                results
+            } catch (e: Exception) {
+                e.printStackTrace()
+                emptyList()
+            }
+        }
+    }
+
+    private fun searchOnline(query: String) {
+        // cancel infinite scroll while showing search results
+        nextPageUrl = null
+        progressBottom.visibility = View.VISIBLE
+        isLoading = true
+
+        lifecycleScope.launch {
+            val results = searchOnlineBlocking(query)
+            progressBottom.visibility = View.GONE
+            isLoading = false
+
+            if (results.isEmpty()) {
+                Toast.makeText(this@MainActivity, "Tidak ada hasil untuk \"$query\"", Toast.LENGTH_SHORT).show()
+            }
+
+            mangas.clear()
+            mangas.addAll(results)
+            visibleMangas.clear()
+            visibleMangas.addAll(results)
+            adapter.notifyDataSetChanged()
         }
     }
 
@@ -331,8 +414,6 @@ class MainActivity : AppCompatActivity() {
                     RequestOptions()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .circleCrop()
-                        .placeholder(android.R.drawable.ic_menu_gallery)
-                        .error(android.R.drawable.ic_menu_report_image)
                 )
                 .into(holder.coverIv)
 
