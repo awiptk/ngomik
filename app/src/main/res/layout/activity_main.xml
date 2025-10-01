@@ -9,6 +9,7 @@
 
     <!-- Main content -->
     <LinearLayout
+        android:id="@+id/main_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -24,6 +25,7 @@
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
         <FrameLayout
+            android:id="@+id/content_frame"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
@@ -56,23 +58,41 @@
         android:orientation="vertical"
         android:background="#1E1E1E"
         android:fitsSystemWindows="true"
-        android:paddingTop="8dp">
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
 
-        <!-- header (bisa include file nav_header.xml) -->
-        <include layout="@layout/nav_header"/>
+        <!-- header (pastikan file nav_header.xml ada di res/layout) -->
+        <include layout="@layout/nav_header" />
 
         <!-- menu items -->
         <TextView
-            android:id="@+id/nav_library"/>
+            android:id="@+id/nav_library"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Library"
+            android:textColor="#FFFFFF"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="?attr/selectableItemBackground" />
 
         <TextView
-            android:id="@+id/nav_browse"/>
+            android:id="@+id/nav_browse"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Browse"
+            android:textColor="#FFFFFF"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="?attr/selectableItemBackground" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#333333"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"/>
 
         <TextView
             android:id="@+id/nav_settings"
@@ -96,7 +116,11 @@
             android:paddingEnd="16dp"
             android:background="?attr/selectableItemBackground" />
 
-        <!-- tambahkan item lain sesuai kebutuhan -->
+        <!-- spacer di bawah supaya drawer tidak rapat ke bawah -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
     </LinearLayout>
 
