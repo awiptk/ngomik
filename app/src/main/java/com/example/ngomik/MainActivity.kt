@@ -320,7 +320,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Search online (untuk Browse) ---
     private suspend fun searchOnlineBlocking(query: String): List<MangaItem> {
         return withContext(Dispatchers.IO) {
             try {
@@ -329,24 +328,30 @@ class MainActivity : AppCompatActivity() {
                 val url = "$baseDomain/?s=$encoded"
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
 
-                // gunakan selector spesifik: hasil pencarian ada di .listupd, tiap entry di .bsx > a[href]
                 val elements = doc.select(".listupd .bsx > a[href]")
-                // fallback lebih umum bila tidak ada
                 val finalElems = if (elements.isEmpty()) doc.select(".listupd .bs a[href]") else elements
 
                 val map = linkedMapOf<String, MangaItem>()
-                for (a in finalElems) {
-                    val href = a.absUrl("href").ifBlank {
-                        continue
+
+                // SOLUSI: Ubah dari for loop biasa
+                finalElems.forEach {
+                    a ->
+                    val href = a.absUrl("href")
+                    if (href.isBlank() || map.containsKey(href)) {
+                        return@forEach // Gunakan return@forEach bukan continue
                     }
-                    if (map.containsKey(href)) continue
+
                     val title = a.attr("title").takeIf {
                         it.isNotBlank()
                     }
                     ?: a.selectFirst(".tt")?.text()?.trim()
                     ?: a.text()?.trim()
                     ?: ""
-                    if (title.isBlank()) continue
+
+                    if (title.isBlank()) {
+                        return@forEach // Gunakan return@forEach bukan continue
+                    }
+
                     val cover = a.selectFirst("img")?.absUrl("src") ?: ""
                     map[href] = MangaItem(title, href, cover, "")
                 }
