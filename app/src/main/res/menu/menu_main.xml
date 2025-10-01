@@ -2,7 +2,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- Search -->
     <item
         android:id="@+id/action_search"
         android:title="Search"
@@ -10,7 +9,6 @@
         app:showAsAction="ifRoom|collapseActionView"
         app:actionViewClass="androidx.appcompat.widget.SearchView" />
 
-    <!-- Overflow menu (titik tiga) -->
     <item
         android:id="@+id/action_more"
         android:title="More"
@@ -36,28 +34,5 @@
                 app:showAsAction="never" />
         </menu>
     </item>
-
-</menu><?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <item
-        android:id="@+id/action_search"
-        android:title="Search"
-        android:icon="@android:drawable/ic_menu_search"
-        app:showAsAction="ifRoom|collapseActionView"
-        app:actionViewClass="androidx.appcompat.widget.SearchView" />
-
-    <item
-        android:id="@+id/action_open_web"
-        android:title="Open in app"
-        android:icon="@android:drawable/ic_menu_view"
-        app:showAsAction="never" />
-
-   <item
-        android:id="@+id/action_open_in_browser"
-        android:title="Open in browser"
-        android:icon="@android:drawable/ic_menu_more"
-        app:showAsAction="never" />
 
 </menu>
