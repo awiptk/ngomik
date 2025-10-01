@@ -9,14 +9,28 @@
     android:clickable="true"
     android:focusable="true">
 
-    <!-- Cover bulat -->
-    <ImageView
-        android:id="@+id/cover"
+    <!-- bungkus ImageView + overlay di FrameLayout agar overlay hanya menutupi gambar -->
+    <FrameLayout
         android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:scaleType="centerCrop"
-        android:contentDescription="cover"
-        android:clipToOutline="true" />
+        android:layout_height="48dp">
+
+        <ImageView
+            android:id="@+id/cover"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="cover"
+            android:clipToOutline="true"
+            <!-- optional: beri background oval jika mau clipToOutline bekerja -->
+            android:background="@drawable/circle_mask" />
+
+        <View
+            android:id="@+id/dim_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#66000000"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <!-- Judul manga -->
     <TextView
@@ -30,11 +44,4 @@
         android:ellipsize="end"
         android:singleLine="true" />
 
-    <!-- Overlay bookmark -->
-    <View
-        android:id="@+id/dim_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#66000000"
-        android:visibility="gone" />
 </LinearLayout>
