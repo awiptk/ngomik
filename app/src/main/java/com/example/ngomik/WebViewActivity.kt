@@ -1,7 +1,9 @@
 package com.example.ngomik
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.webkit.WebChromeClient
@@ -16,6 +18,7 @@ class WebViewActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var progressBar: ProgressBar
+    private var currentUrl: String = "https://id.ngomik.cloud"
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,7 +40,7 @@ class WebViewActivity : AppCompatActivity() {
         settings.loadWithOverviewMode = true
 
         // Ambil URL dari intent
-        val url = intent.getStringExtra("url") ?: "https://id.ngomik.cloud"
+        currentUrl = intent.getStringExtra("url") ?: currentUrl
 
         // Client supaya tetap di app
         webView.webViewClient = WebViewClient()
@@ -57,24 +60,44 @@ class WebViewActivity : AppCompatActivity() {
             }
         }
 
-        webView.loadUrl(url)
+        webView.loadUrl(currentUrl)
     }
 
-    // Tombol back -> cek history WebView dulu
+    // Tambahkan menu di Toolbar
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_webview, menu)
+        return true
+    }
+
+    // Aksi menu
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                onBackPressed()
+                true
+            }
+            R.id.action_refresh -> {
+                webView.reload()
+                true
+            }
+            R.id.action_share -> {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, webView.url ?: currentUrl)
+                }
+                startActivity(Intent.createChooser(shareIntent, "Bagikan link via"))
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    // Tombol back → cek history WebView dulu
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
         } else {
             super.onBackPressed()
         }
-    }
-
-    // Tombol back (panah di Toolbar)
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            onBackPressed()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }
