@@ -44,10 +44,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var nextPageUrl: String? = null
     private var isLoading = false
     private var currentMode = ViewMode.LIBRARY
-    
+
     private lateinit var prefs: SharedPreferences
     private val gson = Gson()
-    
+
     enum class ViewMode {
         LIBRARY, BROWSE
     }
@@ -57,25 +57,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        
+
         prefs = getSharedPreferences("manga_prefs", MODE_PRIVATE)
-        
+
         // Setup toolbar
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-        
+
         // Setup drawer
         drawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         navView.setNavigationItemSelectedListener(this)
-        
+
         val toggle = ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
-        
+
         recyclerView = findViewById(R.id.recyclerView)
         progressBottom = findViewById(R.id.progress_bottom)
 
@@ -87,31 +87,31 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Load library (bookmark) pertama kali
         loadLibrary()
     }
-    
+
     private fun loadLibrary() {
         currentMode = ViewMode.LIBRARY
         supportActionBar?.title = "Library"
-        
+
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: List<MangaItem> = gson.fromJson(bookmarksJson, type) ?: emptyList()
-        
+
         mangas.clear()
         mangas.addAll(bookmarks)
         adapter.notifyDataSetChanged()
-        
+
         if (bookmarks.isEmpty()) {
             Toast.makeText(this, "Library kosong. Browse manga untuk menambahkan.", Toast.LENGTH_LONG).show()
         }
     }
-    
+
     private fun loadBrowse() {
         currentMode = ViewMode.BROWSE
         supportActionBar?.title = "Browse"
         nextPageUrl = "https://id.ngomik.cloud/manga/?order=update"
         mangas.clear()
         adapter.notifyDataSetChanged()
-        
+
         // Tambah infinite scroll listener
         recyclerView.clearOnScrollListeners()
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -129,7 +129,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
         })
-        
+
         fetchMangaList()
     }
 
@@ -171,19 +171,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
     }
-    
+
     fun isBookmarked(item: MangaItem): Boolean {
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
         return bookmarks.any { it.href == item.href }
     }
-    
+
     fun toggleBookmark(item: MangaItem) {
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
-        
+
         val existing = bookmarks.indexOfFirst { it.href == item.href }
         if (existing >= 0) {
             bookmarks.removeAt(existing)
@@ -192,9 +192,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             bookmarks.add(item)
             Toast.makeText(this, "Ditambahkan ke library", Toast.LENGTH_SHORT).show()
         }
-        
+
         prefs.edit().putString("bookmarks", gson.toJson(bookmarks)).apply()
-        
+
         // Refresh jika sedang di library
         if (currentMode == ViewMode.LIBRARY) {
             loadLibrary()
@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
-    
+
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -257,7 +257,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 intent.putExtra("url", item.href)
                 startActivity(intent)
             }
-            
+
             holder.itemView.setOnLongClickListener {
                 toggleBookmark(item)
                 true
