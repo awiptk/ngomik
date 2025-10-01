@@ -10,7 +10,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.ngomik.util.ImageUtils
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,8 +55,8 @@ class ChapterActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val doc = Jsoup.connect(url).get()
-                val elements = doc.select("#readerarea img") // selector gambar chapter
-                val urls = elements.map { it.absUrl("src") }
+                val elements = doc.select("#readerarea img")
+                val urls = elements.map { "https://images.weserv.nl/?w=300&q=70&url=${it.absUrl("src")}" }
 
                 withContext(Dispatchers.Main) {
                     setPages(urls)
@@ -96,14 +98,15 @@ class ChapterActivity : AppCompatActivity() {
             val url = pages[position]
             holder.image.setImageDrawable(null)
 
-            Thread {
-                try {
-                    val bmp = ImageUtils.downloadAndDownsample(url, 1080)
-                    holder.image.post { holder.image.setImageBitmap(bmp) }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }.start()
+            // Lazy loading menggunakan Glide
+            Glide.with(holder.image.context)
+                .load(url)
+                .apply(
+                    RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .dontAnimate()
+                )
+                .into(holder.image)
         }
 
         override fun getItemCount(): Int = pages.size
