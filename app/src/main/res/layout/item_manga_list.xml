@@ -20,9 +20,7 @@
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
             android:contentDescription="cover"
-            android:clipToOutline="true"
-            <!-- optional: beri background oval jika mau clipToOutline bekerja -->
-            android:background="@drawable/circle_mask" />
+            android:clipToOutline="true"         android:background="@drawable/circle_mask" />
 
         <View
             android:id="@+id/dim_overlay"
