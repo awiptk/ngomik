@@ -8,25 +8,19 @@
     android:padding="16dp"
     android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
-    <ImageView
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:src="@android:drawable/sym_def_app_icon"
-        android:contentDescription="App Icon" />
-
     <TextView
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="8dp"
         android:text="Ngomik Reader"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+        android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Read manga anywhere"
-        android:textSize="12sp" />
+        android:text="Manga Reader"
+        android:textColor="#B3FFFFFF" />
 
 </LinearLayout>
