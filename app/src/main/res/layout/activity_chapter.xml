@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/windowBackground">
 
-    <!-- Container utama menggantikan SwipeRefreshLayout -->
+    <!-- Container utama -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -16,16 +15,15 @@
             android:id="@+id/recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
+            android:paddingStart="15%"
+            android:paddingEnd="15%"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
             android:clipToPadding="false"
             android:scrollbars="vertical"
-            android:clipToOutline="false"
-            android:layout_marginBottom="72dp" /> <!-- ruang untuk FAB -->
+            android:clipToOutline="false" />
 
-        <!-- Empty state (tampil saat data kosong). Default: gone -->
+        <!-- Empty state -->
         <TextView
             android:id="@+id/emptyView"
             android:layout_width="wrap_content"
@@ -37,7 +35,7 @@
             android:layout_gravity="center"
             android:layout_margin="16dp" />
 
-        <!-- Progress overlay (tengah layar) -->
+        <!-- Progress overlay -->
         <ProgressBar
             android:id="@+id/progress"
             style="?android:attr/progressBarStyleLarge"
@@ -47,18 +45,5 @@
             android:visibility="gone"
             android:indeterminateTint="?attr/colorPrimary" />
     </FrameLayout>
-
-    <!-- Floating action button (opsional) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="Aksi"
-        app:srcCompat="@android:drawable/ic_menu_upload"
-        app:tint="@android:color/white"
-        app:layout_anchorGravity="bottom|end"
-        app:backgroundTint="?attr/colorPrimary"
-        app:layout_anchor="@id/recycler" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
