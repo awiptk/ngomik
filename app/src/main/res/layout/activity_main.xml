@@ -64,9 +64,23 @@
         <!-- menu items -->
         <TextView
             android:id="@+id/nav_library"
+            ... />
+
+        <TextView
+            android:id="@+id/nav_browse"
+            ... />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/nav_settings"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Library"
+            android:text="Settings"
             android:textColor="#FFFFFF"
             android:gravity="center_vertical"
             android:paddingStart="16dp"
@@ -74,10 +88,10 @@
             android:background="?attr/selectableItemBackground" />
 
         <TextView
-            android:id="@+id/nav_browse"
+            android:id="@+id/nav_about"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Browse"
+            android:text="About"
             android:textColor="#FFFFFF"
             android:gravity="center_vertical"
             android:paddingStart="16dp"
