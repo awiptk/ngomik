@@ -63,12 +63,10 @@
 
         <!-- menu items -->
         <TextView
-            android:id="@+id/nav_library"
-            ... />
+            android:id="@+id/nav_library"/>
 
         <TextView
-            android:id="@+id/nav_browse"
-            ... />
+            android:id="@+id/nav_browse"/>
 
         <View
             android:layout_width="match_parent"
