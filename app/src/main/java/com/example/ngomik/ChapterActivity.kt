@@ -26,19 +26,20 @@ import java.util.concurrent.Executors
 class ChapterActivity : AppCompatActivity() {
 
     private lateinit var recycler: RecyclerView
-    private lateinit var progress: ProgressBar
+    private lateinit var progressBottom: ProgressBar
     private lateinit var adapter: PageAdapter
 
     private var chapterUrl: String = ""
     private var nextChapterUrl: String? = null
     private var isLoading = false
+    private val loadedChapters = mutableSetOf<String>() // Track loaded chapters
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_chapter)
+        setContentView(R.layout.activity_chapter_updated)
 
         recycler = findViewById(R.id.recycler)
-        progress = findViewById(R.id.progress)
+        progressBottom = findViewById(R.id.progress_bottom)
 
         recycler.layoutManager = LinearLayoutManager(this)
         adapter = PageAdapter(mutableListOf())
@@ -54,14 +55,14 @@ class ChapterActivity : AppCompatActivity() {
                 val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
                 if (!isLoading && nextChapterUrl != null &&
-                    (visibleItemCount + firstVisibleItemPosition) >= totalItemCount &&
+                    !loadedChapters.contains(nextChapterUrl) &&
+                    (visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 5 &&
                     firstVisibleItemPosition >= 0) {
                     loadNextChapter()
                 }
             }
         })
 
-        // Ambil URL dari intent
         chapterUrl = intent.getStringExtra("url") ?: ""
         if (chapterUrl.isEmpty()) {
             Toast.makeText(this, "Chapter URL tidak ditemukan", Toast.LENGTH_SHORT).show()
@@ -69,25 +70,28 @@ class ChapterActivity : AppCompatActivity() {
             return
         }
 
-        // Fetch dan parse chapter
         fetchChapter(chapterUrl)
     }
 
     private fun fetchChapter(url: String) {
-        progress.visibility = View.VISIBLE
+        if (loadedChapters.contains(url)) return
+        
+        progressBottom.visibility = View.VISIBLE
         isLoading = true
+        loadedChapters.add(url)
+        
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val doc = Jsoup.connect(url).get()
                 val elements = doc.select("#readerarea img")
-                val urls = elements.map { "https://images.weserv.nl/?w=300&q=70&url=${it.absUrl("src")}" }
+                val urls = elements.map { "https://images.weserv.nl/?w=800&q=85&url=${it.absUrl("src")}" }
 
                 // Dapatkan next chapter URL
                 nextChapterUrl = doc.selectFirst("a.ch-next-btn")?.absUrl("href")
 
                 withContext(Dispatchers.Main) {
                     adapter.addPages(urls)
-                    progress.visibility = View.GONE
+                    progressBottom.visibility = View.GONE
                     isLoading = false
                 }
             } catch (e: Exception) {
@@ -98,8 +102,9 @@ class ChapterActivity : AppCompatActivity() {
                         "Gagal memuat chapter",
                         Toast.LENGTH_SHORT
                     ).show()
-                    progress.visibility = View.GONE
+                    progressBottom.visibility = View.GONE
                     isLoading = false
+                    loadedChapters.remove(url) // Remove dari set jika gagal
                 }
             }
         }
@@ -114,7 +119,7 @@ class ChapterActivity : AppCompatActivity() {
     class PageAdapter(private val pages: MutableList<String>) :
         RecyclerView.Adapter<PageAdapter.PageViewHolder>() {
 
-        private val executor = Executors.newSingleThreadExecutor() // Untuk muat gambar secara berurutan
+        private val executor = Executors.newSingleThreadExecutor()
 
         fun addPages(newPages: List<String>) {
             val start = pages.size
@@ -126,14 +131,25 @@ class ChapterActivity : AppCompatActivity() {
             val image: ImageView = view.findViewById(R.id.image)
             val progressBar: ProgressBar = view.findViewById(R.id.progress_image)
 
-            // Zoom support
             private var scaleFactor = 1f
             private val maxScale = 5f
             private val minScale = 1f
+            private var pivotX = 0f
+            private var pivotY = 0f
 
             private val gestureDetector = GestureDetector(itemView.context, object : GestureDetector.SimpleOnGestureListener() {
                 override fun onDoubleTap(e: MotionEvent): Boolean {
-                    scaleFactor = if (scaleFactor > minScale) minScale else 2f
+                    if (scaleFactor > minScale) {
+                        // Reset zoom
+                        scaleFactor = minScale
+                    } else {
+                        // Zoom in di posisi tap
+                        scaleFactor = 2.5f
+                        pivotX = e.x
+                        pivotY = e.y
+                        image.pivotX = pivotX
+                        image.pivotY = pivotY
+                    }
                     image.scaleX = scaleFactor
                     image.scaleY = scaleFactor
                     return true
@@ -144,6 +160,11 @@ class ChapterActivity : AppCompatActivity() {
                 override fun onScale(detector: android.view.ScaleGestureDetector): Boolean {
                     scaleFactor *= detector.scaleFactor
                     scaleFactor = scaleFactor.coerceIn(minScale, maxScale)
+                    
+                    // Set pivot di posisi pinch
+                    image.pivotX = detector.focusX
+                    image.pivotY = detector.focusY
+                    
                     image.scaleX = scaleFactor
                     image.scaleY = scaleFactor
                     return true
@@ -152,8 +173,8 @@ class ChapterActivity : AppCompatActivity() {
 
             init {
                 image.setOnTouchListener { v, event ->
-                    gestureDetector.onTouchEvent(event)
                     scaleGestureDetector.onTouchEvent(event)
+                    gestureDetector.onTouchEvent(event)
                     true
                 }
             }
@@ -161,7 +182,7 @@ class ChapterActivity : AppCompatActivity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
             val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_page, parent, false)
+                .inflate(R.layout.item_page_updated, parent, false)
             return PageViewHolder(view)
         }
 
@@ -172,7 +193,6 @@ class ChapterActivity : AppCompatActivity() {
             holder.image.scaleX = 1f
             holder.image.scaleY = 1f
 
-            // Muat gambar secara berurutan menggunakan single thread executor
             executor.execute {
                 Glide.with(holder.image.context)
                     .load(url)
