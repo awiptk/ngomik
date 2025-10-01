@@ -104,8 +104,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         progressBottom = findViewById(R.id.progress_bottom)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = MangaAdapter(visibleMangas) {
-            item ->
+        adapter = MangaAdapter(visibleMangas) { item ->
             val intent = Intent(this@MainActivity, MangaDetailActivity::class.java)
             intent.putExtra("url", item.href)
             startActivity(intent)
@@ -276,8 +275,7 @@ class MainActivity : AppCompatActivity() {
                 val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
                 // page listing selector
                 val items = doc.select(".listupd .bs")
-                val newMangasAll = items.map {
-                    el ->
+                val newMangasAll = items.map { el ->
                     val a = el.selectFirst("a")
                     val title = el.selectFirst(".tt")?.text()?.trim() ?: a?.attr("title") ?: a?.text() ?: ""
                     val href = a?.absUrl("href") ?: ""
@@ -289,11 +287,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 // filter out duplicates already present in mangas (prevent doubling)
-                val newMangas = newMangasAll.filter {
-                    nm -> mangas.none {
-                        it.href == nm.href
-                    }
-                }
+                val newMangas = newMangasAll.filter { nm -> mangas.none { it.href == nm.href } }
 
                 nextPageUrl = doc.selectFirst("a.next.page-numbers")?.absUrl("href")
 
@@ -333,23 +327,19 @@ class MainActivity : AppCompatActivity() {
 
                 val map = linkedMapOf<String, MangaItem>()
 
-                // SOLUSI: Ubah dari for loop biasa
-                finalElems.forEach {
-                    a ->
+                finalElems.forEach { a ->
                     val href = a.absUrl("href")
                     if (href.isBlank() || map.containsKey(href)) {
-                        return@forEach // Gunakan return@forEach bukan continue
+                        return@forEach
                     }
 
-                    val title = a.attr("title").takeIf {
-                        it.isNotBlank()
-                    }
-                    ?: a.selectFirst(".tt")?.text()?.trim()
-                    ?: a.text()?.trim()
-                    ?: ""
+                    val title = a.attr("title").takeIf { it.isNotBlank() }
+                        ?: a.selectFirst(".tt")?.text()?.trim()
+                        ?: a.text()?.trim()
+                        ?: ""
 
                     if (title.isBlank()) {
-                        return@forEach // Gunakan return@forEach bukan continue
+                        return@forEach
                     }
 
                     val cover = a.selectFirst("img")?.absUrl("src") ?: ""
@@ -365,7 +355,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun searchOnline(query: String) {
-        // cancel infinite scroll while showing search results
         nextPageUrl = null
         progressBottom.visibility = View.VISIBLE
         isLoading = true
@@ -392,9 +381,7 @@ class MainActivity : AppCompatActivity() {
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
-        return bookmarks.any {
-            it.href == item.href
-        }
+        return bookmarks.any { it.href == item.href }
     }
 
     fun toggleBookmark(item: MangaItem) {
@@ -402,9 +389,7 @@ class MainActivity : AppCompatActivity() {
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
 
-        val existing = bookmarks.indexOfFirst {
-            it.href == item.href
-        }
+        val existing = bookmarks.indexOfFirst { it.href == item.href }
         if (existing >= 0) {
             bookmarks.removeAt(existing)
             Toast.makeText(this, "Dihapus dari library", Toast.LENGTH_SHORT).show()
@@ -433,9 +418,7 @@ class MainActivity : AppCompatActivity() {
             }
             doubleBackToExit = true
             Toast.makeText(this, "Tekan sekali lagi untuk keluar", Toast.LENGTH_SHORT).show()
-            android.os.Handler(mainLooper).postDelayed({
-                doubleBackToExit = false
-            }, 2000)
+            android.os.Handler(mainLooper).postDelayed({ doubleBackToExit = false }, 2000)
         }
     }
 
@@ -447,7 +430,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MangaViewHolder {
             val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_manga_list, parent, false)
+                .inflate(R.layout.item_manga_list, parent, false)
             return MangaViewHolder(view)
         }
 
@@ -463,13 +446,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             Glide.with(holder.coverIv.context)
-            .load(if (coverUrl.isBlank()) null else coverUrl)
-            .apply(
-                RequestOptions()
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .circleCrop()
-            )
-            .into(holder.coverIv)
+                .load(if (coverUrl.isBlank()) null else coverUrl)
+                .apply(
+                    RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .circleCrop()
+                )
+                .into(holder.coverIv)
 
             if (isBookmarked(item)) {
                 holder.overlay.visibility = View.VISIBLE
@@ -479,9 +462,7 @@ class MainActivity : AppCompatActivity() {
                 holder.titleTv.alpha = 1.0f
             }
 
-            holder.itemView.setOnClickListener {
-                onItemClick(item)
-            }
+            holder.itemView.setOnClickListener { onItemClick(item) }
             holder.itemView.setOnLongClickListener {
                 toggleBookmark(item)
                 true
