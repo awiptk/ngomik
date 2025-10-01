@@ -104,7 +104,8 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         progressBottom = findViewById(R.id.progress_bottom)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = MangaAdapter(visibleMangas) { item ->
+        adapter = MangaAdapter(visibleMangas) {
+            item ->
             val intent = Intent(this@MainActivity, MangaDetailActivity::class.java)
             intent.putExtra("url", item.href)
             startActivity(intent)
@@ -155,7 +156,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            // Open in internal WebView (overflow menu)
+            // Open in internal WebView
             R.id.action_open_web -> {
                 val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
                 val intent = Intent(this, WebViewActivity::class.java)
@@ -163,14 +164,21 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 true
             }
-            // Open in external browser (overflow menu)
+
+            // Open in external browser
             R.id.action_open_in_browser -> {
                 val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
                 val i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 startActivity(Intent.createChooser(i, "Open with"))
                 true
             }
-            else -> super.onOptionsItemSelected(item)
+
+            // Open About page
+            R.id.action_about -> {
+                val intent = Intent(this, AboutActivity::class.java)
+                startActivity(intent)
+                true
+            } else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -189,7 +197,9 @@ class MainActivity : AppCompatActivity() {
         if (qLower.isEmpty()) {
             visibleMangas.addAll(mangas)
         } else {
-            visibleMangas.addAll(mangas.filter { it.title.lowercase().contains(qLower) })
+            visibleMangas.addAll(mangas.filter {
+                it.title.lowercase().contains(qLower)
+            })
         }
         adapter.notifyDataSetChanged()
     }
@@ -266,17 +276,24 @@ class MainActivity : AppCompatActivity() {
                 val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
                 // page listing selector
                 val items = doc.select(".listupd .bs")
-                val newMangasAll = items.map { el ->
+                val newMangasAll = items.map {
+                    el ->
                     val a = el.selectFirst("a")
                     val title = el.selectFirst(".tt")?.text()?.trim() ?: a?.attr("title") ?: a?.text() ?: ""
                     val href = a?.absUrl("href") ?: ""
                     val cover = el.selectFirst("img")?.absUrl("src") ?: ""
                     val type = el.selectFirst(".type")?.text()?.trim() ?: ""
                     MangaItem(title, href, cover, type)
-                }.filter { it.title.isNotEmpty() && it.href.isNotEmpty() }
+                }.filter {
+                    it.title.isNotEmpty() && it.href.isNotEmpty()
+                }
 
                 // filter out duplicates already present in mangas (prevent doubling)
-                val newMangas = newMangasAll.filter { nm -> mangas.none { it.href == nm.href } }
+                val newMangas = newMangasAll.filter {
+                    nm -> mangas.none {
+                        it.href == nm.href
+                    }
+                }
 
                 nextPageUrl = doc.selectFirst("a.next.page-numbers")?.absUrl("href")
 
@@ -319,12 +336,16 @@ class MainActivity : AppCompatActivity() {
 
                 val map = linkedMapOf<String, MangaItem>()
                 for (a in finalElems) {
-                    val href = a.absUrl("href").ifBlank { continue }
+                    val href = a.absUrl("href").ifBlank {
+                        continue
+                    }
                     if (map.containsKey(href)) continue
-                    val title = a.attr("title").takeIf { it.isNotBlank() }
-                        ?: a.selectFirst(".tt")?.text()?.trim()
-                        ?: a.text()?.trim()
-                        ?: ""
+                    val title = a.attr("title").takeIf {
+                        it.isNotBlank()
+                    }
+                    ?: a.selectFirst(".tt")?.text()?.trim()
+                    ?: a.text()?.trim()
+                    ?: ""
                     if (title.isBlank()) continue
                     val cover = a.selectFirst("img")?.absUrl("src") ?: ""
                     map[href] = MangaItem(title, href, cover, "")
@@ -366,7 +387,9 @@ class MainActivity : AppCompatActivity() {
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
-        return bookmarks.any { it.href == item.href }
+        return bookmarks.any {
+            it.href == item.href
+        }
     }
 
     fun toggleBookmark(item: MangaItem) {
@@ -374,7 +397,9 @@ class MainActivity : AppCompatActivity() {
         val type = object : TypeToken<List<MangaItem>>() {}.type
         val bookmarks: MutableList<MangaItem> = gson.fromJson(bookmarksJson, type) ?: mutableListOf()
 
-        val existing = bookmarks.indexOfFirst { it.href == item.href }
+        val existing = bookmarks.indexOfFirst {
+            it.href == item.href
+        }
         if (existing >= 0) {
             bookmarks.removeAt(existing)
             Toast.makeText(this, "Dihapus dari library", Toast.LENGTH_SHORT).show()
@@ -417,7 +442,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MangaViewHolder {
             val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_manga_list, parent, false)
+            .inflate(R.layout.item_manga_list, parent, false)
             return MangaViewHolder(view)
         }
 
@@ -433,13 +458,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             Glide.with(holder.coverIv.context)
-                .load(if (coverUrl.isBlank()) null else coverUrl)
-                .apply(
-                    RequestOptions()
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .circleCrop()
-                )
-                .into(holder.coverIv)
+            .load(if (coverUrl.isBlank()) null else coverUrl)
+            .apply(
+                RequestOptions()
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .circleCrop()
+            )
+            .into(holder.coverIv)
 
             if (isBookmarked(item)) {
                 holder.overlay.visibility = View.VISIBLE
@@ -449,7 +474,9 @@ class MainActivity : AppCompatActivity() {
                 holder.titleTv.alpha = 1.0f
             }
 
-            holder.itemView.setOnClickListener { onItemClick(item) }
+            holder.itemView.setOnClickListener {
+                onItemClick(item)
+            }
             holder.itemView.setOnLongClickListener {
                 toggleBookmark(item)
                 true
