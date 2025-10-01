@@ -1,5 +1,3 @@
-// MainActivity.kt with Glide for caching thumbnails (no reload on scroll), improved layout, black title text, smaller cards, and dark mode support
-
 package com.example.ngomik
 
 import android.content.Intent
