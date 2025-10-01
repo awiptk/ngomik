@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -21,7 +20,7 @@
             android:background="?attr/colorPrimary"
             android:elevation="4dp"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+            />
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -37,7 +36,6 @@
 
         </FrameLayout>
 
-        <!-- Progress bar di bawah untuk next page loading -->
         <ProgressBar
             android:id="@+id/progress_bottom"
             style="?android:attr/progressBarStyleHorizontal"
@@ -48,17 +46,45 @@
 
     </LinearLayout>
 
-    <!-- Navigation drawer -->
-    <com.google.android.material.navigation.NavigationView
-    android:id="@+id/nav_view"
-    android:layout_width="wrap_content"
-    android:layout_height="match_parent"
-    android:layout_gravity="start"
-    android:fitsSystemWindows="true"
-    android:background="#1E1E1E"
-    app:headerLayout="@layout/nav_header"
-    app:menu="@menu/drawer_menu"
-    app:itemIconTint="@android:color/white"
-    app:itemTextColor="@android:color/white" />
+    <!-- Simple navigation drawer (menggantikan NavigationView) -->
+    <LinearLayout
+        android:id="@+id/nav_view"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:background="#1E1E1E"
+        android:fitsSystemWindows="true"
+        android:paddingTop="8dp">
+
+        <!-- header (bisa include file nav_header.xml) -->
+        <include layout="@layout/nav_header"/>
+
+        <!-- menu items -->
+        <TextView
+            android:id="@+id/nav_library"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Library"
+            android:textColor="#FFFFFF"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="?attr/selectableItemBackground" />
+
+        <TextView
+            android:id="@+id/nav_browse"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Browse"
+            android:textColor="#FFFFFF"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="?attr/selectableItemBackground" />
+
+        <!-- tambahkan item lain sesuai kebutuhan -->
+
+    </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>
