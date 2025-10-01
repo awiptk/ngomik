@@ -14,4 +14,5 @@
         android:title="Open Web"
         android:icon="@android:drawable/ic_menu_view"
         app:showAsAction="ifRoom" />
+
 </menu>
