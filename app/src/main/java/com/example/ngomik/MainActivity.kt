@@ -35,6 +35,12 @@ data class MangaItem(val title: String, val href: String, val cover: String, val
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        const val baseUrl = "https://id.ngomik.cloud"
+        const val mangaDir = "/manga"
+        const val browseParams = "?order=update"
+    }
+
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBottom: ProgressBar
@@ -47,13 +53,27 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private val gson = Gson()
-    private var doubleBackToExit = false // untuk back press 2x
-
-    // job untuk search debounce / cancel previous
+    private var doubleBackToExit = false
     private var currentSearchJob: Job? = null
 
     enum class ViewMode {
         LIBRARY, BROWSE
+    }
+
+    private fun getBaseDomain(): String = 
+        prefs.getString("base_domain", baseUrl) ?: baseUrl
+
+    private fun buildBrowseUrl(): String {
+        val base = prefs.getString("base_domain", baseUrl) ?: baseUrl
+        val dir = prefs.getString("manga_directory", mangaDir) ?: mangaDir
+        val params = prefs.getString("browse_params", browseParams) ?: browseParams
+        return "$base$dir/$params"
+    }
+
+    private fun buildSearchUrl(query: String): String {
+        val base = prefs.getString("base_domain", baseUrl) ?: baseUrl
+        val encoded = URLEncoder.encode(query, "UTF-8")
+        return "$base/?s=$encoded"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,11 +83,9 @@ class MainActivity : AppCompatActivity() {
 
         prefs = getSharedPreferences("manga_prefs", MODE_PRIVATE)
 
-        // Toolbar
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        // Drawer
         drawerLayout = findViewById(R.id.drawer_layout)
         val toggle = androidx.appcompat.app.ActionBarDrawerToggle(
             this, drawerLayout, toolbar,
@@ -76,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
-        // Menu Drawer
         val navLibrary: TextView = findViewById(R.id.nav_library)
         val navBrowse: TextView = findViewById(R.id.nav_browse)
         val navSettings: TextView? = findViewById(R.id.nav_settings)
@@ -95,12 +112,10 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
         navAbout?.setOnClickListener {
-            // buka AboutActivity (bukan Toast)
             startActivity(Intent(this, AboutActivity::class.java))
             drawerLayout.closeDrawer(GravityCompat.START)
         }
 
-        // RecyclerView
         recyclerView = findViewById(R.id.recyclerView)
         progressBottom = findViewById(R.id.progress_bottom)
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -111,11 +126,9 @@ class MainActivity : AppCompatActivity() {
         }
         recyclerView.adapter = adapter
 
-        // Load awal
         loadLibrary()
     }
 
-    // --- Menu (Search + Overflow with web options) ---
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
 
@@ -155,37 +168,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            // Open in internal WebView
             R.id.action_open_web -> {
-                val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
                 val intent = Intent(this, WebViewActivity::class.java)
-                intent.putExtra("url", url)
+                intent.putExtra("url", getBaseDomain())
                 startActivity(intent)
                 true
             }
 
-            // Open in external browser
             R.id.action_open_in_browser -> {
-                val url = prefs.getString("base_domain", "https://id.ngomik.cloud") ?: "https://id.ngomik.cloud"
-                val i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                val i = Intent(Intent.ACTION_VIEW, Uri.parse(getBaseDomain()))
                 startActivity(Intent.createChooser(i, "Open with"))
                 true
             }
 
-            // Open About page
-            R.id.action_about -> {
-                val intent = Intent(this, AboutActivity::class.java)
-                startActivity(intent)
-                true
-            } else -> super.onOptionsItemSelected(item)
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
-    // helper: cancel previous job and start a new debounced search
     private fun performSearchWithCancel(query: String) {
         currentSearchJob?.cancel()
         currentSearchJob = lifecycleScope.launch {
-            delay(250) // debounce 250ms
+            delay(250)
             searchOnline(query)
         }
     }
@@ -203,12 +206,10 @@ class MainActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    // --- LOAD LIBRARY ---
     private fun loadLibrary() {
         currentMode = ViewMode.LIBRARY
         supportActionBar?.title = "Library"
 
-        // hentikan behaviour browse
         recyclerView.clearOnScrollListeners()
         nextPageUrl = null
         isLoading = false
@@ -229,21 +230,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- LOAD BROWSE ---
     private fun loadBrowse() {
         currentMode = ViewMode.BROWSE
         supportActionBar?.title = "Browse"
 
-        // reset list & prepare infinite scroll
         mangas.clear()
         visibleMangas.clear()
         adapter.notifyDataSetChanged()
 
-        // build base domain from prefs
-        val baseDomain = prefs.getString("base_domain", "https://id.ngomik.cloud")!!
-        nextPageUrl = "$baseDomain/manga/?order=update"
+        nextPageUrl = buildBrowseUrl()
 
-        // add infinite scroll listener
         recyclerView.clearOnScrollListeners()
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
@@ -253,7 +249,6 @@ class MainActivity : AppCompatActivity() {
                 val totalItemCount = layoutManager.itemCount
                 val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                // trigger load when reaching end
                 if (!isLoading && nextPageUrl != null &&
                     (visibleItemCount + firstVisibleItemPosition) >= totalItemCount &&
                     firstVisibleItemPosition >= 0
@@ -270,25 +265,28 @@ class MainActivity : AppCompatActivity() {
         if (nextPageUrl == null) return
         progressBottom.visibility = View.VISIBLE
         isLoading = true
+        
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val doc = Jsoup.connect(nextPageUrl).userAgent("Mozilla/5.0").get()
-                // page listing selector
                 val items = doc.select(".listupd .bs")
                 val newMangasAll = items.map { el ->
                     val a = el.selectFirst("a")
                     val title = el.selectFirst(".tt")?.text()?.trim() ?: a?.attr("title") ?: a?.text() ?: ""
                     val href = a?.absUrl("href") ?: ""
-                    val cover = el.selectFirst("img")?.absUrl("src") ?: ""
+                    
+                    val imgEl = el.selectFirst("img")
+                    val cover = imgEl?.absUrl("src")?.takeIf { it.isNotBlank() }
+                        ?: imgEl?.attr("data-pagespeed-lazy-src")?.takeIf { it.isNotBlank() }
+                        ?: ""
+                    
                     val type = el.selectFirst(".type")?.text()?.trim() ?: ""
                     MangaItem(title, href, cover, type)
                 }.filter {
                     it.title.isNotEmpty() && it.href.isNotEmpty()
                 }
 
-                // filter out duplicates already present in mangas (prevent doubling)
                 val newMangas = newMangasAll.filter { nm -> mangas.none { it.href == nm.href } }
-
                 nextPageUrl = doc.selectFirst("a.next.page-numbers")?.absUrl("href")
 
                 withContext(Dispatchers.Main) {
@@ -317,9 +315,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun searchOnlineBlocking(query: String): List<MangaItem> {
         return withContext(Dispatchers.IO) {
             try {
-                val baseDomain = prefs.getString("base_domain", "https://id.ngomik.cloud")!!
-                val encoded = URLEncoder.encode(query, "UTF-8")
-                val url = "$baseDomain/?s=$encoded"
+                val url = buildSearchUrl(query)
                 val doc = Jsoup.connect(url).userAgent("Mozilla/5.0").get()
 
                 val elements = doc.select(".listupd .bsx > a[href]")
@@ -342,7 +338,11 @@ class MainActivity : AppCompatActivity() {
                         return@forEach
                     }
 
-                    val cover = a.selectFirst("img")?.absUrl("src") ?: ""
+                    val imgEl = a.selectFirst("img")
+                    val cover = imgEl?.absUrl("src")?.takeIf { it.isNotBlank() }
+                        ?: imgEl?.attr("data-pagespeed-lazy-src")?.takeIf { it.isNotBlank() }
+                        ?: ""
+                    
                     map[href] = MangaItem(title, href, cover, "")
                 }
 
@@ -376,7 +376,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Bookmarks ---
     fun isBookmarked(item: MangaItem): Boolean {
         val bookmarksJson = prefs.getString("bookmarks", "[]")
         val type = object : TypeToken<List<MangaItem>>() {}.type
@@ -407,7 +406,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Double back to exit ---
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -422,7 +420,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Adapter ---
     inner class MangaAdapter(
         private val items: List<MangaItem>,
         private val onItemClick: (MangaItem) -> Unit
