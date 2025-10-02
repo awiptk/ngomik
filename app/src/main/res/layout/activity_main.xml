@@ -21,8 +21,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             android:elevation="4dp"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
         <FrameLayout
             android:id="@+id/content_frame"
@@ -61,7 +60,7 @@
         android:paddingTop="8dp"
         android:paddingBottom="8dp">
 
-        <!-- header (pastikan file nav_header.xml ada di res/layout) -->
+        <!-- header -->
         <include layout="@layout/nav_header" />
 
         <!-- menu items -->
@@ -115,8 +114,6 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:background="?attr/selectableItemBackground" />
-
-        <!-- spacer di bawah supaya drawer tidak rapat ke bawah -->
         <View
             android:layout_width="match_parent"
             android:layout_height="0dp"
